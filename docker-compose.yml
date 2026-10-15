@@ -1,5 +1,6 @@
 x-common-volumes: &common-volumes
-  - ./:/MoneyPrinterTurbo
+  - ./config.toml:/MoneyPrinterTurbo/config.toml
+  - mpt-storage:/MoneyPrinterTurbo/storage
 
 services:
   webui:
@@ -30,3 +31,6 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+
+volumes:
+  mpt-storage:
