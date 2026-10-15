@@ -5,7 +5,10 @@ on:
     branches: [feature/afiliados]
     paths:
       - 'app/afiliados/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
       - 'test/test_afiliados_*.py'
+      - 'requirements.txt'
       - '.github/workflows/afiliados-isolated-validation.yml'
 permissions:
   contents: read
