@@ -79,10 +79,6 @@ class VideoQuota:
     def _expire_stale(db: sqlite3.Connection, owner_id: str, now: int) -> None:
         # Only expired reservations can be removed; a late completion will
         # then fail because its reservation no longer exists.
-        db.execute("""DELETE FROM affiliate_video_quota WHERE owner_id=?
-            AND status='reserved' AND created_at < ?""",
-            (owner_id, datetime.fromtimestamp(now - RESERVATION_TTL_SECONDS, timezone.utc).isoformat()))
-        # All new timestamps are UTC, but old reservations were in Sao Paulo.
         old = db.execute("""SELECT id, created_at FROM affiliate_video_quota
             WHERE owner_id=? AND status='reserved'""", (owner_id,)).fetchall()
         for reservation_id, timestamp in old:
