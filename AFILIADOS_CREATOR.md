@@ -97,3 +97,7 @@ Grátis: um vídeo por anúncio, nenhuma thumbnail, um vídeo concluído por dia
 ## Permissao para salvar projetos
 
 O plano Gratis nao permite salvar, importar, exportar nem reabrir projetos. Pro e Creator permitem salvar e continuar projetos. A interface de testes oculta estas operacoes no Gratis e a politica de planos expoe require_feature(plan, 'projects'). O ProjectStore e um backend experimental sem integracao de assinatura confiavel: antes do lancamento, todas as rotas de escrita e leitura de projetos devem verificar o plano atribuido pelo servidor, nunca pelo cliente. A biblioteca de midias e um recurso separado que tambem precisa de politica comercial explicita.
+
+## Assinaturas locais verificadas pelo servidor
+
+O prototipo local agora usa SubscriptionStore em data/afiliados-subscriptions.sqlite para consultar o plano da conta autenticada. Sem registro, o plano e Gratis. AuthorizedProjects valida a assinatura no banco antes de salvar, listar, carregar ou excluir projetos, inclusive apos downgrade. Alteracoes administrativas de plano sao apenas internas/de testes e exigem trusted_admin=True; nao existe interface publica de upgrade nem integracao com cobranca. O backend ProjectStore bruto nao deve ser exposto diretamente a requisicoes externas. Para producao, substituir o sinal trusted_admin por autorizacao de administrador verificavel no servidor e conectar pagamentos/assinaturas reais.
