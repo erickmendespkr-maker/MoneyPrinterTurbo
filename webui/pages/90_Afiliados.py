@@ -2,7 +2,6 @@
 import json
 import sys
 from pathlib import Path
-from uuid import uuid4
 
 import streamlit as st
 
@@ -40,7 +39,40 @@ draft = st.session_state.get("affiliate_draft")
 if draft:
     st.subheader("Revisão do anúncio")
     st.write(draft["script"] or "Roteiro ainda não fornecido — aguardando integração com ChatGPT.")
-    st.caption("Aprovação, narração, Kling e exportação MP4 serão habilitados após os testes e a configuração final.")
+    st.caption("ChatGPT e Kling permanecem desativados até a etapa final. Você já pode montar um vídeo com fotos reais e áudio enviado manualmente.")
+    photos = st.file_uploader(
+        "Fotos reais do produto (até 8, JPEG/PNG/WEBP)",
+        type=["jpg", "jpeg", "png", "webp"],
+        accept_multiple_files=True,
+    )
+    narration = st.file_uploader(
+        "Narração opcional já gravada (MP3, WAV ou M4A)",
+        type=["mp3", "wav", "m4a"],
+    )
+    approved = st.checkbox("Revisei o roteiro e confirmo que as informações do produto são verdadeiras.")
+    if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos):
+        try:
+            from app.afiliados.render import render_mp4
+            with st.spinner("Montando vídeo vertical com os arquivos enviados..."):
+                mp4 = render_mp4(
+                    [photo.getvalue() for photo in photos],
+                    draft["product"]["duration"],
+                    draft["script"],
+                    narration.getvalue() if narration else None,
+                    "." + narration.name.rsplit(".", 1)[-1].lower() if narration else ".mp3",
+                )
+            st.session_state["affiliate_mp4"] = mp4
+            st.success("Vídeo montado localmente. Nenhuma API paga foi utilizada.")
+        except Exception as exc:
+            st.error(f"Não foi possível montar o vídeo: {type(exc).__name__}: {exc}")
+    if st.session_state.get("affiliate_mp4"):
+        st.video(st.session_state["affiliate_mp4"])
+        st.download_button(
+            "Baixar MP4",
+            st.session_state["affiliate_mp4"],
+            file_name="reels-afiliados.mp4",
+            mime="video/mp4",
+        )
     st.download_button(
         "Baixar projeto do anúncio (JSON)",
         data=json.dumps(draft, ensure_ascii=False, indent=2),
