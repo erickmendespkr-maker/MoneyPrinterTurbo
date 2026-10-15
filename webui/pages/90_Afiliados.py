@@ -57,6 +57,35 @@ if LOCAL_ACCOUNTS:
     owner_id = auth.resolve(token) if token else None
     if owner_id is None:
         st.session_state.pop("affiliate_session_token", None)
+        st.markdown("### Conheça o estúdio antes de criar sua conta")
+        st.caption("Explore o funcionamento gratuitamente. Para gerar, baixar ou gerenciar anúncios, entre ou cadastre-se.")
+        preview_tab, examples_tab, pricing_tab = st.tabs(("Prévia do editor", "Vídeos de exemplo", "Planos"))
+        with preview_tab:
+            st.markdown("#### Criar anúncio")
+            st.text_input("Link do produto", value="https://shopee.com.br/...", disabled=True, key="public_preview_url")
+            st.text_input("Nome do produto", value="Exemplo: Aspirador portátil", disabled=True, key="public_preview_name")
+            st.text_area("Roteiro do vídeo", value="Aqui você revisa o roteiro antes de gerar seu anúncio.", disabled=True, key="public_preview_script")
+            st.button("Gerar vídeo — entre para desbloquear", disabled=True, key="public_preview_generate")
+            st.caption("Editor ilustrativo. Nenhum vídeo é gerado sem autenticação.")
+        with examples_tab:
+            st.markdown("#### Demonstrações")
+            demo_dir = ROOT / "assets" / "afiliados" / "demos"
+            demos = sorted(demo_dir.glob("*.mp4"))[:6] if demo_dir.is_dir() else []
+            if demos:
+                for demo in demos:
+                    st.video(str(demo))
+            else:
+                st.info("Vídeos demonstrativos serão publicados aqui. Nenhum exemplo fictício foi apresentado como vídeo real.")
+        with pricing_tab:
+            st.table({
+                "Plano": ["Grátis", "Pro", "Creator"],
+                "Vídeos por dia": ["1", "5", "Ilimitados (uso justo)"],
+                "Vídeos por anúncio": [1, 1, 3],
+                "Capas por anúncio": [0, 0, 9],
+                "Salvar projetos": ["Não", "Sim", "Sim"],
+                "Publicidade": ["Sim", "Não", "Não"],
+            })
+        st.divider()
         st.subheader("Acessar Afiliados Creator")
         st.warning("Login experimental para uso local. Não publique esta opção na internet.")
         reset_token = st.query_params.get("reset_token")
