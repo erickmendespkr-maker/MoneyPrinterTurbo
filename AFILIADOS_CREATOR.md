@@ -61,3 +61,7 @@ A aba **Meus projetos** aceita importar um JSON do Afiliados Creator (versão de
 ## Persistencia de projetos (backend experimental)
 
 O modulo app/afiliados/storage.py oferece SQLite para salvar, listar, abrir, atualizar e excluir projetos por proprietario. A interface nao usa esse armazenamento porque ainda falta autenticacao confiavel. O identificador do proprietario deve vir da sessao validada pelo servidor. O banco e local, nao nuvem; fotos, audios e videos nao sao persistidos nesta etapa.
+
+## Autenticacao local experimental
+
+O modulo app/afiliados/auth.py implementa cadastro e login local, hashing scrypt com salt aleatorio, tokens de sessao opacos armazenados como hash e logout. Ainda nao esta conectado a interface Streamlit. Antes de habilitar acesso publico sao necessarios HTTPS, limitacao de tentativas, verificacao de e-mail, recuperacao de senha, protecao CSRF, revisao de sessao e testes integrados. Nao confundir este prototipo com autenticacao pronta para producao.
