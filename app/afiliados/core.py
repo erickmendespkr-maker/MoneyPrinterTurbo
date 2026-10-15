@@ -99,6 +99,11 @@ def local_script(brief: AffiliateBrief) -> str:
     brief.validate()
     name = _clean(brief.product_name, limit=140).rstrip(".!?")
     facts = " ".join(_clean(brief.features).split()).rstrip(".!?")
+    # Preserve the CTA even for maximum-length product descriptions.
+    overhead = len(f"Conheça {name}. . {CTA[brief.cta]}")
+    available = MAX_SCRIPT - overhead
+    if len(facts) > available:
+        facts = facts[:available].rsplit(" ", 1)[0].rstrip(" ,;:.!?") or facts[:available]
     # Avoid automatically incorporating price notes: they can become stale.
     return f"Conheça {name}. {facts}. {CTA[brief.cta]}"
 
