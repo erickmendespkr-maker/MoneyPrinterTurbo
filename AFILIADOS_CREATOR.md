@@ -85,3 +85,7 @@ A biblioteca SQLite local limita cada conta a 100 arquivos e 512 MB totais, com 
 ## Variacoes de video locais
 
 O renderizador aceita impacto, beneficio e curiosidade, com posicoes de legenda diferentes e ordem alternativa das fotos quando ha mais de uma. O dashboard permite escolher e gerar uma variacao de cada vez, sem APIs pagas. Ainda nao existe geracao automatica em lote de tres MP4 nem nove capas agrupadas por video; os tres estilos de capa atuais continuam disponiveis separadamente. Todos os videos usam o roteiro revisado e as imagens reais fornecidas.
+
+## Campanha em lote: tres videos e nove capas
+
+O modulo app/afiliados/campaign.py monta localmente um ZIP contendo videos/impacto.mp4, videos/beneficio.mp4, videos/curiosidade.mp4 e tres PNG por video em covers/<variacao>/<estilo>.png, mais manifest.json. O dashboard oferece botao de gerar e baixar o pacote apos a aprovacao do roteiro. Fotos sao reais e as capas recebem identificacao visual da variacao. O processo e sincrono, pesado em CPU e memoria, sem APIs pagas. O limite do ZIP e 350 MB; se algum render falhar, nao e oferecido pacote parcial. Ainda faltam testes reais de desempenho e codificacao das tres variantes no ambiente de deploy.
