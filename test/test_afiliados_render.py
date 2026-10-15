@@ -161,3 +161,18 @@ def test_normalizer_rejects_invalid_target_dimensions(target):
 def test_caption_rejects_tiny_canvas():
     with pytest.raises(ValueError, match="pequena demais"):
         overlay_caption(Image.new("RGB", (64, 64), "white"), "Teste")
+
+
+@pytest.mark.parametrize("extension,payload", [
+    (".mp3", b"not an mp3"),
+    (".wav", b"RIFF" + b"0" * 8),
+    (".m4a", b"not an m4a"),
+])
+def test_renderer_rejects_bad_audio_magic_before_encoding(extension, payload, monkeypatch):
+    import sys
+    image = Image.new("RGB", (40, 40), "red")
+    data = BytesIO()
+    image.save(data, format="PNG")
+    monkeypatch.setitem(sys.modules, "moviepy", None)
+    with pytest.raises(ValueError, match="Arquivo .* inválido"):
+        render_mp4([data.getvalue()], 15, "Roteiro válido", audio=payload, audio_extension=extension)
