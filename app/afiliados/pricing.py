@@ -6,7 +6,7 @@ MONTHLY_BRL = {
     "pro": Decimal("39.90"),
     "creator": Decimal("119.90"),
 }
-ANNUAL_PAID_MONTHS = 11
+ANNUAL_PAID_MONTHS = 10
 ANNUAL_ACCESS_MONTHS = 12
 
 
