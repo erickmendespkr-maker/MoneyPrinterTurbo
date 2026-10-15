@@ -18,6 +18,10 @@ def test_valid_product():
     "https://shopee.com.br:999999/x",
     "https://[broken/x",
     "https://shopee.com.br@127.0.0.1/x",
+    "https://shopee.com.br./item",
+    "https://shopee.com.br/item#fragment",
+    "https://shopee.com.br\\\\@evil.test/item",
+    "https://shopee%2ecom.br/item",
 ])
 def test_unsafe_urls_rejected(url):
     with pytest.raises(ValueError):
