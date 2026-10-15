@@ -42,6 +42,8 @@ def caption_segments(script: str, count: int) -> list[str]:
     """Divide supplied copy across slides without fabricating product claims."""
     if count < 1 or count > MAX_IMAGES:
         raise ValueError("Quantidade de slides inválida")
+    if not isinstance(script, str):
+        raise ValueError("Roteiro inválido")
     words = re.findall(r"\S+", script.strip())
     if not words:
         return [""] * count
