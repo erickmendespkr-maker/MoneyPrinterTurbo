@@ -114,8 +114,11 @@ if LOCAL_ACCOUNTS:
                     try:
                         st.session_state["affiliate_session_token"] = auth.login(email, password)
                         st.rerun()
-                    except ValueError:
-                        st.error("Não foi possível entrar com essas credenciais.")
+                    except ValueError as exc:
+                        if "Muitas tentativas" in str(exc):
+                            st.warning("Muitas tentativas. Aguarde 15 minutos antes de tentar novamente.")
+                        else:
+                            st.error("Não foi possível entrar com essas credenciais.")
         with register_tab:
             with st.form("affiliate_register"):
                 email = st.text_input("E-mail", key="affiliate_register_email")
@@ -141,8 +144,11 @@ if LOCAL_ACCOUNTS:
                         if reset is not None:
                             send_reset_email(recovery_email.strip().casefold(), reset)
                         st.success("Se o e-mail estiver cadastrado, enviaremos as instruções de recuperação.")
-                    except ValueError:
-                        st.error("Informe um endereço de e-mail válido.")
+                    except ValueError as exc:
+                        if "Muitas tentativas" in str(exc):
+                            st.warning("Limite de solicitações atingido. Tente novamente mais tarde.")
+                        else:
+                            st.error("Informe um endereço de e-mail válido.")
                     except (RuntimeError, OSError):
                         st.error("O serviço de recuperação por e-mail está indisponível no momento.")
         st.stop()
