@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps, UnidentifiedImageError
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 MAX_AUDIO_BYTES = 25 * 1024 * 1024
 MAX_IMAGES = 8
+VIDEO_VARIANTS = ("impacto", "beneficio", "curiosidade")
 
 
 def normalize_photo(data: bytes, target: tuple[int, int] = (720, 1280)) -> Image.Image:
@@ -53,8 +54,10 @@ def caption_segments(script: str, count: int) -> list[str]:
     ]
 
 
-def overlay_caption(photo: Image.Image, caption: str) -> Image.Image:
+def overlay_caption(photo: Image.Image, caption: str, *, variant: str = "impacto") -> Image.Image:
     """Draw readable, centered captions without modifying source image proportions."""
+    if variant not in VIDEO_VARIANTS:
+        raise ValueError("Variação de vídeo inválida")
     if not isinstance(photo, Image.Image):
         raise ValueError("Imagem inválida para legenda")
     if not isinstance(caption, str):
@@ -95,7 +98,9 @@ def overlay_caption(photo: Image.Image, caption: str) -> Image.Image:
     if len(lines) > 6:
         lines = ["…"] + lines[-5:]
     line_height = 45
-    start_y = photo.height - 145 - len(lines) * line_height
+    start_y = (photo.height - 145 - len(lines) * line_height if variant == "impacto"
+               else 125 if variant == "beneficio"
+               else (photo.height - len(lines) * line_height) // 2)
     drawer.rounded_rectangle(
         (24, start_y - 20, photo.width - 24, start_y + len(lines) * line_height + 15),
         radius=18,
@@ -126,10 +131,13 @@ def render_mp4(
     audio: bytes | None = None,
     audio_extension: str = ".mp3",
     watermark: bool = True,
+    variant: str = "impacto",
 ) -> bytes:
     """Render a vertical slideshow. Audio is optional; generation is local only."""
     if type(watermark) is not bool:
         raise ValueError("Configuração de marca-d'água inválida")
+    if variant not in VIDEO_VARIANTS:
+        raise ValueError("Variação de vídeo inválida")
     if not isinstance(images, list) or not (1 <= len(images) <= MAX_IMAGES):
         raise ValueError("Envie de 1 a 8 imagens")
     if type(duration) is not int or duration not in (15, 20, 30):
@@ -159,8 +167,12 @@ def render_mp4(
         directory = Path(temp)
         paths = []
         captions = caption_segments(script, len(images))
+        if variant == "beneficio" and len(normalized) > 1:
+            normalized = normalized[1:] + normalized[:1]
+        elif variant == "curiosidade":
+            normalized = list(reversed(normalized))
         for index, photo_data in enumerate(normalized):
-            photo = overlay_caption(photo_data, captions[index])
+            photo = overlay_caption(photo_data, captions[index], variant=variant)
             if watermark:
                 photo = overlay_watermark(photo)
             path = directory / f"photo-{index}.png"
