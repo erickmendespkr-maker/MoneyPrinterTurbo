@@ -17,7 +17,7 @@ MAX_IMAGES = 8
 
 
 def normalize_photo(data: bytes, target: tuple[int, int] = (720, 1280)) -> Image.Image:
-    if not data or len(data) > MAX_IMAGE_BYTES:
+    if not isinstance(data, bytes) or not data or len(data) > MAX_IMAGE_BYTES:
         raise ValueError("Imagem vazia ou acima de 12 MB")
     try:
         with Image.open(io.BytesIO(data)) as src:
@@ -99,9 +99,9 @@ def render_mp4(
     audio_extension: str = ".mp3",
 ) -> bytes:
     """Render a vertical slideshow. Audio is optional; generation is local only."""
-    if not (1 <= len(images) <= MAX_IMAGES):
+    if not isinstance(images, list) or not (1 <= len(images) <= MAX_IMAGES):
         raise ValueError("Envie de 1 a 8 imagens")
-    if duration not in (15, 20, 30):
+    if type(duration) is not int or duration not in (15, 20, 30):
         raise ValueError("Duração inválida")
     if not isinstance(script, str) or len(script) > 1400:
         raise ValueError("Roteiro inválido ou longo demais")
