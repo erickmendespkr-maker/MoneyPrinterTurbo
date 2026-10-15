@@ -27,6 +27,8 @@ with st.expander("Importar dados de HTML salvo"):
                 raise ValueError("Arquivo acima de 2 MB")
             info = extract_product_metadata(raw.decode("utf-8-sig", errors="replace"))
             st.session_state["affiliate_imported"] = info
+            if not info.get("name") and not info.get("description"):
+                st.warning("Nenhum dado do produto encontrado neste HTML. Informe manualmente.")
             if info.get("name"):
                 st.session_state["affiliate_product_name"] = info["name"]
             if info.get("description"):
