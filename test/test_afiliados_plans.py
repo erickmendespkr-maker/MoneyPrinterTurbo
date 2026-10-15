@@ -44,3 +44,19 @@ def test_watermark_rejects_invalid_input():
         overlay_watermark(Image.new("RGB", (10, 10)))
     with pytest.raises(ValueError):
         overlay_watermark(Image.new("RGB", (720, 1280)), opacity=256)
+
+
+def test_only_creator_has_multiple_videos_and_thumbnails():
+    from app.afiliados.plans import require_feature
+    for name in ("gratis", "pro"):
+        policy = get_plan_policy(name)
+        assert policy.videos_per_ad == 1
+        assert policy.thumbnails_per_ad == 0
+        for feature in ("thumbnails", "campaign"):
+            with pytest.raises(PermissionError):
+                require_feature(name, feature)
+    creator = get_plan_policy("creator")
+    assert creator.videos_per_ad == 3
+    assert creator.thumbnails_per_ad == 9
+    require_feature("creator", "thumbnails")
+    require_feature("creator", "campaign")
