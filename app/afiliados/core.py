@@ -36,7 +36,11 @@ def validate_product_url(value: str) -> str:
     host = parsed.hostname.lower().rstrip(".")
     if not any(host == domain or host.endswith("." + domain) for domain in SUPPORTED_SHOPS):
         raise ValueError("Loja não permitida. Informe os dados manualmente e use um link de loja suportada")
-    if parsed.port not in (None, 443):
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("Porta de URL inválida") from exc
+    if port not in (None, 443):
         raise ValueError("Porta de URL não permitida")
     return url
 
