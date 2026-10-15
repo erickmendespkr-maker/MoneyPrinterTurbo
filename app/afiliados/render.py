@@ -64,15 +64,29 @@ def overlay_caption(photo: Image.Image, caption: str) -> Image.Image:
     line = ""
     for word in caption.split():
         candidate = (line + " " + word).strip()
-        if line and drawer.textbbox((0, 0), candidate, font=font)[2] > max_width:
-            lines.append(line)
-            line = word
-        else:
+        if drawer.textbbox((0, 0), candidate, font=font)[2] <= max_width:
             line = candidate
+            continue
+        if line:
+            lines.append(line)
+            line = ""
+        # Long uninterrupted product identifiers must not spill off screen.
+        for char in word:
+            candidate = line + char
+            if line and drawer.textbbox((0, 0), candidate, font=font)[2] > max_width:
+                lines.append(line)
+                line = char
+            else:
+                line = candidate
     if line:
         lines.append(line)
-    # Keep the visual area manageable; complete copy remains in the JSON draft.
-    lines = lines[:6]
+    # Display at most six lines. An ellipsis explicitly signals omitted copy.
+    if len(lines) > 6:
+        lines = lines[:6]
+        last = lines[-1]
+        while last and drawer.textbbox((0, 0), last + "…", font=font)[2] > max_width:
+            last = last[:-1]
+        lines[-1] = last.rstrip() + "…"
     line_height = 45
     start_y = photo.height - 145 - len(lines) * line_height
     drawer.rounded_rectangle(
