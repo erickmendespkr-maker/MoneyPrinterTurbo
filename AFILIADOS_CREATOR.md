@@ -93,3 +93,7 @@ O modulo app/afiliados/campaign.py monta localmente um ZIP contendo videos/impac
 ## Regra comercial confirmada: videos e capas por anuncio
 
 Grátis: um vídeo por anúncio, nenhuma thumbnail, um vídeo concluído por dia e marca-d'água obrigatória. Pro: um vídeo por anúncio, nenhuma thumbnail, cinco vídeos concluídos por dia e marca-d'água obrigatória. Creator: três vídeos por anúncio, nove thumbnails (três por vídeo), vídeos diários ilimitados sob uso justo e marca-d'água opcional/personalizada. O lote de três vídeos valida o direito Creator na função de geração. Como a verificação confiável de assinatura ainda não foi implementada, o dashboard opera conservadoramente como Grátis, sem liberar thumbnails ou lote Creator. Os limites diários ainda precisam de contabilidade transacional no servidor antes de lançamento público.
+
+## Permissao para salvar projetos
+
+O plano Gratis nao permite salvar, importar, exportar nem reabrir projetos. Pro e Creator permitem salvar e continuar projetos. A interface de testes oculta estas operacoes no Gratis e a politica de planos expoe require_feature(plan, 'projects'). O ProjectStore e um backend experimental sem integracao de assinatura confiavel: antes do lancamento, todas as rotas de escrita e leitura de projetos devem verificar o plano atribuido pelo servidor, nunca pelo cliente. A biblioteca de midias e um recurso separado que tambem precisa de politica comercial explicita.
