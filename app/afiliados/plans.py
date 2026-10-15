@@ -16,7 +16,7 @@ class PlanPolicy:
 PLANS = {
     "gratis": PlanPolicy("gratis", 1, True, False, 1, 0, False),
     "pro": PlanPolicy("pro", 3, True, False, 1, 0, True),
-    "premium": PlanPolicy("premium", 5, True, False, 1, 3, True),
+    "premium": PlanPolicy("premium", 5, False, True, 1, 3, True),
     "creator": PlanPolicy("creator", 10, False, True, 3, 9, True),
 }
 
