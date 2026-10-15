@@ -148,3 +148,7 @@ Nenhum desses itens deve ser considerado concluído apenas por estar documentado
 ## Preços comerciais definidos para planejamento (2026-10-15)
 
 Grátis: R$ 0/mês. Pro: R$ 39,90/mês. Creator: R$ 119,90/mês. O Creator oferece geração de vídeos sem cota diária fixa, sujeita a política transparente de uso justo, fila de processamento, limite de concorrência e proteção contra abuso. Não confundir vídeos ilimitados com capacidade computacional simultânea ilimitada, nem com geração cinematográfica por APIs externas. Estes preços são referências comerciais, não cobranças ativadas: não existe checkout de produção ou assinatura paga integrada. Antes da comercialização, medir custo real por vídeo, estabelecer política de uso justo, transparência de consumo e proteção de cotas no servidor.
+
+## Assinaturas anuais: um mês grátis (2026-10-15)
+
+Grátis: R$ 0. Pro: R$ 39,90 por mês ou R$ 438,90 por ano (economia de R$ 39,90). Creator: R$ 119,90 por mês ou R$ 1.318,90 por ano (economia de R$ 119,90). A assinatura anual dá direito a 12 meses de acesso mediante pagamento antecipado equivalente a 11 mensalidades (8,33% de desconto sobre 12 mensalidades). Preços exibidos na vitrine pública via app/afiliados/pricing.py, com testes específicos. Não existe checkout, processamento de pagamento, renovação automática ou ativação real de assinatura; esses recursos dependem de integração futura.
