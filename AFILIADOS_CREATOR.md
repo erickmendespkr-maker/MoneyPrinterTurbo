@@ -12,10 +12,10 @@ Concluir primeiro uma ferramenta segura para uso próprio: anúncios verticais a
 - Narração automática opcional em português brasileiro por Edge TTS. Requer internet, transmite o texto do roteiro ao serviço de voz e não usa créditos de API paga. É acionada somente por escolha do usuário.
 - A montagem de vídeo utiliza fotos fornecidas pelo usuário, sem inventar características ou preços.
 - Integrações externas (ChatGPT, Kling e demais APIs) ainda não habilitadas neste fluxo; credenciais ficam para a etapa final.
-- Recursos comerciais, assinaturas e cobrança não estão implementados.
+- Políticas iniciais dos planos implementadas em `app/afiliados/plans.py`: Grátis (1 vídeo/dia), Pro (5 vídeos/dia), Creator (sem limite diário). A persistência de uso, autenticação, cobrança e aplicação segura de cotas no servidor ainda não foram implementadas.\n- Marca-d'água visual padrão aplicada no MP4: branca, pequena, aproximadamente 80% opaca, canto inferior direito. A função de renderização possui uma opção técnica `watermark=False`, que **não deve ser exposta a usuários** antes da autorização do plano Creator ser validada no servidor.\n- Remoção de marca-d'água, logotipo personalizado, thumbnails e fluxos automáticos a partir de link ainda exigem implementação e testes.
 - Nome comercial e domínios ainda dependem de verificação formal antes de lançamento público.
 
-## Créditos e licença
+## Planos previstos\n\n| Plano | Vídeos finalizados por dia | Marca da plataforma | Marca própria |\n| --- | ---: | --- | --- |\n| Grátis | 1 | Obrigatória | Não |\n| Pro | 5 | Obrigatória | Não |\n| Creator | Ilimitado | Opcional | Sim |\n\nA cota deve ser aplicada com contagem transacional por usuário no fuso de Brasília; falhas de renderização não devem consumir uma geração. O plano Creator não dispensa proteção contra abuso, concorrência excessiva ou custos de infraestrutura. A interface atual ainda é uma ferramenta de teste sem login nem cobrança.\n\n## Créditos e licença
 
 Esta implementação deriva do projeto de código aberto [MoneyPrinterTurbo](https://github.com/harry0703/MoneyPrinterTurbo). O novo nome não remove a autoria, os avisos de copyright ou as obrigações da licença original. Consulte o arquivo `LICENSE` e a documentação upstream.
 
