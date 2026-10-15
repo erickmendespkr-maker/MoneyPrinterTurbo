@@ -39,7 +39,7 @@ def validate_product_url(value: str) -> str:
         raise ValueError("Use um link HTTPS válido, sem credenciais")
     # Reject encoded delimiters, trailing-dot host aliases and backslashes.
     # Product URLs are never fetched server-side, but exports should be canonical.
-    if "\\\\" in url or "%" in parsed.netloc or host.endswith("."):
+    if chr(92) in url or "%" in parsed.netloc or host.endswith("."):
         raise ValueError("Link HTTPS inválido")
     host = host.lower()
     if not any(host == domain or host.endswith("." + domain) for domain in SUPPORTED_SHOPS):
