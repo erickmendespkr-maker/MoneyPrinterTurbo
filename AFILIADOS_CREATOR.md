@@ -125,3 +125,22 @@ Visitantes sem sessao autenticada visualizam a identidade visual, uma previa ilu
 ## Vitrine publica consistente
 
 A mesma vitrine de editor ilustrativo, galeria de demonstracoes e tabela de planos e mostrada tanto sem sessao no ambiente local quanto com o login desabilitado. Os dados da tabela derivam de PLANS, reduzindo divergencias comerciais. A galeria somente carrega MP4 de assets/afiliados/demos, nao a biblioteca privada dos usuarios. Nao publicar videos com direitos de terceiros sem autorizacao. Todos os controles da previa sao desabilitados, e o editor real permanece atras de autenticacao.
+
+
+## Preparação para beta fechado — infraestrutura
+
+Arquitetura proposta (ainda não implantada): interface web em hospedagem HTTPS, autenticação gerenciada e banco persistente, armazenamento de arquivos com isolamento por usuário e um worker separado para renderização MP4. Vercel pode servir uma interface frontend, mas não deve executar renderizações pesadas em funções de curta duração. A página Streamlit existente ainda é um protótipo e não constitui um frontend Vercel pronto.
+
+### Recuperação de senha
+
+Configurar AFILIADOS_RESET_PAGE_URL com a URL HTTPS **exata** da página Streamlit de recuperação, por exemplo https://app.exemplo.com/Afiliados, sem query string ou fragmento. O sistema acrescenta ?reset_token=... a essa URL. AFILIADOS_PUBLIC_URL deixou de ser usado pelo remetente de recuperação. As variáveis SMTP devem permanecer exclusivamente no servidor. Confirmar a rota pública efetiva depois do deploy, pois nomes e rotas Streamlit variam com a configuração.
+
+### Critérios mínimos para convidar testadores
+
+1. Escolher e provisionar hospedagem, domínio HTTPS, banco persistente e armazenamento; não colocar SQLite efêmero como banco compartilhado de produção.
+2. Substituir autenticação local experimental por autenticação apropriada ao ambiente público, com confirmação de e-mail, recuperação, proteção contra abuso e sessões seguras.
+3. Isolar renderização em worker com fila, limites de concorrência, timeout e cancelamento; impedir acesso cruzado a arquivos e projetos.
+4. Executar testes end-to-end de cadastro, login, recuperação, quota, renderização, download e isolamento entre contas.
+5. Obter CI e auditoria de dependências aprovados; revisar termos, privacidade e tratamento de dados.
+
+Nenhum desses itens deve ser considerado concluído apenas por estar documentado.
