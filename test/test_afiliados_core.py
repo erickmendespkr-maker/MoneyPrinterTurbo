@@ -28,3 +28,23 @@ def test_prompt_avoids_fabricated_claims():
     draft = prepare_draft(brief)
     assert draft["generation"]["kling_enabled"] is False
     assert draft["status"] == "aguardando_aprovacao"
+
+
+def test_offline_script_is_created_without_api():
+    brief = AffiliateBrief("Mini aspirador", "https://shopee.com.br/item", "Portátil e recarregável")
+    draft = prepare_draft(brief)
+    assert "Mini aspirador" in draft["script"]
+    assert "Portátil e recarregável" in draft["script"]
+    assert 'Comente "EU QUERO"' in draft["script"]
+    assert draft["generation"]["openai_enabled"] is False
+
+
+def test_manual_script_takes_priority():
+    brief = AffiliateBrief("Potes", "https://shopee.com.br/item", "Com tampa")
+    assert prepare_draft(brief, "Texto revisado")["script"] == "Texto revisado"
+
+
+def test_input_control_characters_are_removed():
+    brief = AffiliateBrief("Potes", "https://shopee.com.br/item", "Com tampa")
+    draft = prepare_draft(brief, "Oferta\\x00 revisada")
+    assert draft["script"] == "Oferta revisada"
