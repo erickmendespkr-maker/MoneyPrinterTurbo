@@ -69,3 +69,7 @@ O modulo app/afiliados/auth.py implementa cadastro e login local, hashing scrypt
 ## Teste local com login e projetos
 
 A interface Streamlit agora integra o login experimental e o ProjectStore apenas quando a variavel de ambiente AFILIADOS_LOCAL_ACCOUNTS=1. Por padrao, o login permanece desabilitado. Com a opcao habilitada, o usuario pode cadastrar uma conta local, entrar, salvar o rascunho editado, listar, reabrir e excluir projetos. Os arquivos de imagem, audio e video nao sao persistidos; ao reabrir, envie novamente as midias e revise o roteiro. O banco fica em data/afiliados-auth.sqlite e data/afiliados-projects.sqlite. Uso exclusivamente local, sem exposicao publica. Nao usar este login como autenticacao de producao: faltam rate limiting, verificacao de e-mail, recuperacao de senha e endurecimento das sessoes.
+
+## Testes integrados de contas e projetos
+
+O arquivo test/test_afiliados_auth_storage_integration.py verifica login, ciclo de vida de projetos, isolamento entre contas e expiracao de sessao. A suite deve passar no CI antes de disponibilizar o recurso. Testes automatizados nao substituem a revisao de seguranca para uso publico.
