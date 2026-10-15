@@ -176,3 +176,9 @@ def test_renderer_rejects_bad_audio_magic_before_encoding(extension, payload, mo
     monkeypatch.setitem(sys.modules, "moviepy", None)
     with pytest.raises(ValueError, match="Arquivo .* inválido"):
         render_mp4([data.getvalue()], 15, "Roteiro válido", audio=payload, audio_extension=extension)
+
+
+@pytest.mark.parametrize("script", [None, 15, ["texto"]])
+def test_caption_segments_rejects_non_text(script):
+    with pytest.raises(ValueError, match="Roteiro inválido"):
+        caption_segments(script, 2)
