@@ -13,10 +13,16 @@ Data: 2026-10-15. Escopo: branch `feature/afiliados`, sem publicação nem crede
 
 ## Bloqueios para lançamento
 
-1. Resolver o par MoviePy/Pillow com versões oficialmente compatíveis e auditadas, **ou** isolar/substituir o renderizador para evitar a dependência vulnerável, sem quebrar o restante do MoneyPrinterTurbo.
+1. **Em validação:** o uv usa override de Pillow >=12.3.0 apesar da restrição de metadados de MoviePy 2.2.1. Esse override não altera os metadados de MoviePy e não torna o `pip install -r requirements.txt` compatível com Pillow 12. É obrigatório verificar o lock e executar integração real; o bloqueio só pode ser encerrado depois desses resultados.
 2. Executar e aprovar testes Python 3.11, Python 3.13 e Windows em ambiente reproduzível.
 3. Executar auditoria de dependências e varredura de segredos; analisar os relatórios reais.
 4. Fazer um teste end-to-end de MP4 9:16 com imagem real e outro com narração, inspecionando áudio, legibilidade e duração.
 5. Antes de comercializar, adicionar isolamento entre usuários, limites de uso, política de privacidade e gestão segura de credenciais.
 
 **Conclusão:** ainda **não aprovado** para produção. Este documento registra evidências e pendências, não substitui relatórios automatizados.
+
+## Mitigação em andamento (2026-10-15)
+
+- `pyproject.toml` inclui `[tool.uv].override-dependencies = ["pillow>=12.3.0,<13"]`. Isso contorna apenas a restrição de resolução do MoviePy; **não comprova compatibilidade de execução**.
+- A matriz isolada instala Pillow 12.3.0 e executa os testes do módulo; a auditoria deve verificar a instalação final.
+- O arquivo legado `requirements.txt` e o `uv.lock` devem ser revisados antes de distribuição. Não anunciar vulnerabilidades resolvidas sem resultado da auditoria e verificação de versões instaladas.
