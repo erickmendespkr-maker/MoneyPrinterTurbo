@@ -34,6 +34,7 @@ if submitted:
         st.error(str(exc))
     else:
         st.session_state.pop("affiliate_mp4", None)
+        st.session_state.pop("affiliate_review_script", None)
         st.session_state["affiliate_draft"] = draft
 
 draft = st.session_state.get("affiliate_draft")
@@ -52,21 +53,24 @@ if draft:
     )
     st.caption("As legendas são distribuídas entre as fotos, sem sincronização palavra por palavra.")
     approved = st.checkbox("Revisei o roteiro e confirmo que as informações do produto são verdadeiras.")
-    if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos):
+    if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos or not edited_script.strip()):
         try:
             from app.afiliados.render import render_mp4
             with st.spinner("Montando vídeo vertical com os arquivos enviados..."):
                 mp4 = render_mp4(
                     [photo.getvalue() for photo in photos],
                     draft["product"]["duration"],
-                    draft["script"],
+                    edited_script.strip(),
                     narration.getvalue() if narration else None,
                     "." + narration.name.rsplit(".", 1)[-1].lower() if narration else ".mp3",
                 )
             st.session_state["affiliate_mp4"] = mp4
+            st.session_state["affiliate_rendered_script"] = edited_script.strip()
             st.success("Vídeo montado localmente. Nenhuma API paga foi utilizada.")
         except Exception as exc:
             st.error(f"Não foi possível montar o vídeo: {type(exc).__name__}: {exc}")
+    if st.session_state.get("affiliate_mp4") and st.session_state.get("affiliate_rendered_script") != edited_script.strip():
+        st.session_state.pop("affiliate_mp4", None)
     if st.session_state.get("affiliate_mp4"):
         st.video(st.session_state["affiliate_mp4"])
         st.download_button(
@@ -77,7 +81,7 @@ if draft:
         )
     st.download_button(
         "Baixar projeto do anúncio (JSON)",
-        data=json.dumps(draft, ensure_ascii=False, indent=2),
+        data=json.dumps(reviewed_draft, ensure_ascii=False, indent=2),
         file_name="afiliados-creator-projeto.json",
         mime="application/json",
     )
