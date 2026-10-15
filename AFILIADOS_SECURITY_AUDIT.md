@@ -26,3 +26,9 @@ Data: 2026-10-15. Escopo: branch `feature/afiliados`, sem publicação nem crede
 - `pyproject.toml` inclui `[tool.uv].override-dependencies = ["pillow>=12.3.0,<13"]`. Isso contorna apenas a restrição de resolução do MoviePy; **não comprova compatibilidade de execução**.
 - A matriz isolada instala Pillow 12.3.0 e executa os testes do módulo; a auditoria deve verificar a instalação final.
 - O arquivo legado `requirements.txt` e o `uv.lock` devem ser revisados antes de distribuição. Não anunciar vulnerabilidades resolvidas sem resultado da auditoria e verificação de versões instaladas.
+
+## Evidência do lock (2026-10-15)
+
+- Inspeção direta de `uv.lock` na branch `feature/afiliados`: entrada `pillow` com versão **12.3.0** e manifesto de override `>=12.3.0,<13` presentes.
+- O bloqueio de **lock não atualizado** está encerrado. Permanecem pendentes auditoria de dependências com resultado verde e testes de renderização de MP4 com a combinação MoviePy/Pillow, inclusive no Windows.
+- A execução de CI não deve ser presumida como aprovada enquanto os jobs estiverem em fila.
