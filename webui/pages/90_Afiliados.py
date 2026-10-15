@@ -66,6 +66,15 @@ elif selected_section == "Planos":
 if selected_section == "Criar anúncio":
     st.caption("Roteiros e montagem de vídeo locais. Narração online opcional por Edge TTS, acionada somente por você.")
     st.info("Preencha os dados reais do produto. Um roteiro básico será criado localmente para sua revisão; o ChatGPT será conectado na etapa final.")
+    st.markdown("#### Seu estúdio de criação")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Formatos de capa", "3")
+    with c2:
+        st.metric("Durações disponíveis", "15 / 20 / 30 s")
+    with c3:
+        st.metric("APIs pagas", "0")
+    st.caption("Os indicadores acima descrevem recursos disponíveis no protótipo, não produções realizadas.")
     with st.expander("Importar dados de HTML salvo"):
         st.caption("Teste offline: envie o HTML da página para extrair nome e descrição. Nenhum site será acessado.")
         uploaded_html = st.file_uploader("HTML do produto (máximo 2 MB)", type=["html", "htm"])
