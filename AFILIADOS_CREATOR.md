@@ -156,3 +156,16 @@ Grátis: R$ 0. Pro: R$ 39,90 por mês ou R$ 438,90 por ano (economia de R$ 39,90
 ## Atualização da oferta anual: dois meses grátis (2026-10-15)
 
 Esta política substitui a oferta anterior de um mês grátis. A assinatura anual dá 12 meses de acesso pelo preço de 10 mensalidades, desconto de 16,67%: Pro R$ 399,00/ano (economia de R$ 79,80); Creator R$ 1.199,00/ano (economia de R$ 239,80). Valores mensais permanecem Pro R$ 39,90 e Creator R$ 119,90. A cobrança ainda não está implementada.
+
+## Política comercial vigente — quatro planos (2026-10-15)
+
+Esta seção substitui as tabelas e preços históricos acima quando houver divergência.
+
+| Plano | Mensal | Anual (12 meses, paga 10) | Vídeos por dia | Capas por anúncio | Marca-d'água | Anúncios |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| Grátis | R$ 0,00 | R$ 0,00 | 1 | 0 | Sim | Sim |
+| Pro | R$ 69,90 | R$ 699,00 | 3 | 0 | Sim | Não |
+| Premium | R$ 119,90 | R$ 1.199,00 | 5 | 3 | Não | Não |
+| Creator | R$ 199,90 | R$ 1.999,00 | 10 | 9 | Não | Não |
+
+Anual: dois meses grátis (16,67% de desconto). Premium tem 1 vídeo por anúncio e 3 capas; Creator tem até 3 vídeos por anúncio e 9 capas. A geração em lote consome a cota diária por vídeo, não por pacote. Não existe checkout integrado ou cobrança ativada. O backend de teste precisa de validação de direitos e controle transacional antes do lançamento.
