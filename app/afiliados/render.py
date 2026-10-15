@@ -103,9 +103,9 @@ def render_mp4(
         raise ValueError("Envie de 1 a 8 imagens")
     if duration not in (15, 20, 30):
         raise ValueError("Duração inválida")
-    if len(script) > 1400:
-        raise ValueError("Roteiro longo demais")
-    if audio is not None and (not audio or len(audio) > MAX_AUDIO_BYTES):
+    if not isinstance(script, str) or len(script) > 1400:
+        raise ValueError("Roteiro inválido ou longo demais")
+    if audio is not None and (not isinstance(audio, bytes) or not audio or len(audio) > MAX_AUDIO_BYTES):
         raise ValueError("Áudio inválido ou acima de 25 MB")
     if audio is not None and audio_extension not in (".mp3", ".wav", ".m4a"):
         raise ValueError("Formato de áudio não suportado")
@@ -131,6 +131,8 @@ def render_mp4(
                 audio_path = directory / ("narration" + audio_extension)
                 audio_path.write_bytes(audio)
                 audio_clip = AudioFileClip(str(audio_path))
+                if audio_clip.duration <= 0:
+                    raise ValueError("Áudio sem duração válida")
                 video = video.with_audio(audio_clip.subclipped(0, min(duration, audio_clip.duration)))
             output = directory / "afiliados.mp4"
             video.write_videofile(
