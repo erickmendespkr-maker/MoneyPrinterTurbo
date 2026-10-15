@@ -33,6 +33,7 @@ if submitted:
     except ValueError as exc:
         st.error(str(exc))
     else:
+        st.session_state.pop("affiliate_mp4", None)
         st.session_state["affiliate_draft"] = draft
 
 draft = st.session_state.get("affiliate_draft")
@@ -49,6 +50,7 @@ if draft:
         "Narração opcional já gravada (MP3, WAV ou M4A)",
         type=["mp3", "wav", "m4a"],
     )
+    st.caption("As legendas são distribuídas entre as fotos, sem sincronização palavra por palavra.")
     approved = st.checkbox("Revisei o roteiro e confirmo que as informações do produto são verdadeiras.")
     if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos):
         try:
