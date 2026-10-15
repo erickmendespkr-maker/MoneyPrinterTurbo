@@ -152,3 +152,7 @@ Grátis: R$ 0/mês. Pro: R$ 39,90/mês. Creator: R$ 119,90/mês. O Creator ofere
 ## Assinaturas anuais: um mês grátis (2026-10-15)
 
 Grátis: R$ 0. Pro: R$ 39,90 por mês ou R$ 438,90 por ano (economia de R$ 39,90). Creator: R$ 119,90 por mês ou R$ 1.318,90 por ano (economia de R$ 119,90). A assinatura anual dá direito a 12 meses de acesso mediante pagamento antecipado equivalente a 11 mensalidades (8,33% de desconto sobre 12 mensalidades). Preços exibidos na vitrine pública via app/afiliados/pricing.py, com testes específicos. Não existe checkout, processamento de pagamento, renovação automática ou ativação real de assinatura; esses recursos dependem de integração futura.
+
+## Atualização da oferta anual: dois meses grátis (2026-10-15)
+
+Esta política substitui a oferta anterior de um mês grátis. A assinatura anual dá 12 meses de acesso pelo preço de 10 mensalidades, desconto de 16,67%: Pro R$ 399,00/ano (economia de R$ 79,80); Creator R$ 1.199,00/ano (economia de R$ 239,80). Valores mensais permanecem Pro R$ 39,90 e Creator R$ 119,90. A cobrança ainda não está implementada.
