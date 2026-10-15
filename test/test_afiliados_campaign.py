@@ -22,7 +22,7 @@ def fake_renderer(images, duration, script, audio, audio_extension, *, watermark
 
 def test_campaign_contains_three_videos_and_nine_unique_covers():
     payload = build_campaign([sample()], "Aspirador portátil", 15, "Roteiro aprovado",
-                             renderer=fake_renderer)
+                             renderer=fake_renderer, plan="creator")
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         names = archive.namelist()
         assert len([x for x in names if x.startswith("videos/")]) == 3
@@ -39,7 +39,7 @@ def test_campaign_does_not_return_partial_archive_when_render_fails():
             raise RuntimeError("Encoder failed")
         return b"video"
     with pytest.raises(RuntimeError, match="Encoder"):
-        build_campaign([sample()], "Produto", 15, "Roteiro aprovado", renderer=broken)
+        build_campaign([sample()], "Produto", 15, "Roteiro aprovado", renderer=broken, plan="creator")
 
 
 @pytest.mark.parametrize("images,name,duration,script", [
@@ -52,3 +52,9 @@ def test_campaign_does_not_return_partial_archive_when_render_fails():
 def test_campaign_rejects_bad_input_before_render(images, name, duration, script):
     with pytest.raises(ValueError):
         build_campaign(images, name, duration, script, renderer=fake_renderer)
+
+
+@pytest.mark.parametrize("plan", ["gratis", "pro"])
+def test_batch_denied_for_lower_plans(plan):
+    with pytest.raises(PermissionError, match="Creator"):
+        build_campaign([sample()], "Produto", 15, "Roteiro", renderer=fake_renderer, plan=plan)
