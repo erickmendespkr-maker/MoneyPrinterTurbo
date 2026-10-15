@@ -121,3 +121,7 @@ Com AFILIADOS_LOCAL_ACCOUNTS=1, a interface oferece abas Entrar, Criar conta e E
 ## Vitrine publica antes do login
 
 Visitantes sem sessao autenticada visualizam a identidade visual, uma previa ilustrativa e desabilitada do editor, a tabela de planos e uma galeria de demonstracoes. Videos reais podem ser adicionados como arquivos MP4 em assets/afiliados/demos/ (ate 6 exibidos); na ausencia desses arquivos, o sistema informa que ainda nao ha demonstracoes. A area de cadastro/login/recuperacao aparece abaixo da vitrine no ambiente local de testes com AFILIADOS_LOCAL_ACCOUNTS=1. Acoes de geracao e projetos nao ficam acessiveis a visitantes. Com AFILIADOS_LOCAL_ACCOUNTS desabilitado, o editor tambem permanece bloqueado; a vitrine reduzida informa que a autenticacao precisa ser configurada. Nao habilitar o login local experimental publicamente sem reforco de seguranca.
+
+## Vitrine publica consistente
+
+A mesma vitrine de editor ilustrativo, galeria de demonstracoes e tabela de planos e mostrada tanto sem sessao no ambiente local quanto com o login desabilitado. Os dados da tabela derivam de PLANS, reduzindo divergencias comerciais. A galeria somente carrega MP4 de assets/afiliados/demos, nao a biblioteca privada dos usuarios. Nao publicar videos com direitos de terceiros sem autorizacao. Todos os controles da previa sao desabilitados, e o editor real permanece atras de autenticacao.
