@@ -22,6 +22,8 @@ FREE_COOLDOWN_SECONDS = 24 * 60 * 60
 # A crashed renderer must not lock an account permanently. Production
 # workers should renew leases or reconcile failed jobs before this timeout.
 RESERVATION_TTL_SECONDS = 6 * 60 * 60
+FREE_ATTEMPT_WINDOW_SECONDS = 60 * 60
+FREE_MAX_RENDER_ATTEMPTS = 5
 
 
 def _now() -> int:
@@ -70,6 +72,10 @@ class VideoQuota:
                 timestamp = _now()
             db.execute("UPDATE affiliate_video_quota SET completed_at=? WHERE id=?",
                        (timestamp, reservation_id))
+        db.execute("""CREATE TABLE IF NOT EXISTS affiliate_free_render_attempts (
+            owner_id TEXT NOT NULL, started_at INTEGER NOT NULL
+        )""")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_free_attempt_owner_time ON affiliate_free_render_attempts(owner_id,started_at)")
         db.execute("CREATE INDEX IF NOT EXISTS idx_video_quota_owner_day ON affiliate_video_quota(owner_id,day,status)")
         db.execute("CREATE INDEX IF NOT EXISTS idx_video_quota_cooldown ON affiliate_video_quota(owner_id,status,completed_at)")
         db.commit()
@@ -123,6 +129,14 @@ class VideoQuota:
                 status = self._free_state(db, owner_id, now)
                 if not status.can_generate:
                     raise PermissionError("Limite gratuito: aguarde 24 horas após a última geração concluída")
+                db.execute("DELETE FROM affiliate_free_render_attempts WHERE started_at<=?",
+                           (now - FREE_ATTEMPT_WINDOW_SECONDS,))
+                attempts = db.execute("""SELECT COUNT(*) FROM affiliate_free_render_attempts
+                    WHERE owner_id=? AND started_at>?""",
+                    (owner_id, now - FREE_ATTEMPT_WINDOW_SECONDS)).fetchone()[0]
+                if attempts >= FREE_MAX_RENDER_ATTEMPTS:
+                    raise PermissionError("Muitas tentativas de geração gratuita. Tente novamente mais tarde.")
+                db.execute("INSERT INTO affiliate_free_render_attempts VALUES (?,?)", (owner_id, now))
             else:
                 used = db.execute("""SELECT COUNT(*) FROM affiliate_video_quota
                     WHERE owner_id=? AND day=?""", (owner_id, day)).fetchone()[0]
