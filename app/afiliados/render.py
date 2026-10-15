@@ -17,6 +17,8 @@ MAX_IMAGES = 8
 
 
 def normalize_photo(data: bytes, target: tuple[int, int] = (720, 1280)) -> Image.Image:
+    if not isinstance(target, tuple) or len(target) != 2 or any(type(side) is not int or side < 1 or side > 4096 for side in target):
+        raise ValueError("Dimensões de imagem inválidas")
     if not isinstance(data, bytes) or not data or len(data) > MAX_IMAGE_BYTES:
         raise ValueError("Imagem vazia ou acima de 12 MB")
     try:
