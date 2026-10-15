@@ -35,6 +35,11 @@ class LocalAuth:
             expires_at INTEGER NOT NULL,
             FOREIGN KEY(owner_id) REFERENCES affiliate_users(id)
         )""")
+        db.execute("""CREATE TABLE IF NOT EXISTS affiliate_password_resets (
+            token_hash TEXT PRIMARY KEY, owner_id TEXT NOT NULL,
+            expires_at INTEGER NOT NULL, used_at INTEGER,
+            FOREIGN KEY(owner_id) REFERENCES affiliate_users(id)
+        )""")
         return db
 
     @staticmethod
@@ -90,3 +95,40 @@ class LocalAuth:
         with self._connect() as db:
             db.execute("DELETE FROM affiliate_sessions WHERE token_hash=?",
                        (hashlib.sha256(token.encode()).hexdigest(),))
+
+    def create_reset_token(self, email: str) -> str | None:
+        """Issue a single-use 30-minute token. Unknown emails yield None."""
+        if not isinstance(email, str) or len(email) > 254 or not EMAIL.fullmatch(email):
+            raise ValueError("E-mail inválido")
+        normalized = email.strip().casefold()
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT id FROM affiliate_users WHERE email=?", (normalized,)).fetchone()
+            if row is None:
+                return None
+            owner = row[0]
+            # Invalidate older outstanding tokens on new request.
+            db.execute("DELETE FROM affiliate_password_resets WHERE owner_id=?", (owner,))
+            token = secrets.token_urlsafe(32)
+            db.execute("INSERT INTO affiliate_password_resets VALUES (?,?,?,NULL)",
+                       (hashlib.sha256(token.encode()).hexdigest(), owner, int(time.time()) + 1800))
+        return token
+
+    def reset_password(self, token: str, new_password: str) -> None:
+        if not isinstance(token, str) or len(token) > 256 or len(token) < 32:
+            raise ValueError("Link de recuperação inválido ou expirado")
+        if not isinstance(new_password, str) or not 12 <= len(new_password) <= 128:
+            raise ValueError("A senha deve ter entre 12 e 128 caracteres")
+        digest = hashlib.sha256(token.encode()).hexdigest()
+        salt = secrets.token_bytes(16)
+        password_hash = self._derive(new_password, salt)
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT owner_id FROM affiliate_password_resets WHERE token_hash=? AND used_at IS NULL AND expires_at>?",
+                             (digest, int(time.time()))).fetchone()
+            if row is None:
+                raise ValueError("Link de recuperação inválido ou expirado")
+            owner = row[0]
+            db.execute("UPDATE affiliate_users SET salt=?,password_hash=? WHERE id=?", (salt, password_hash, owner))
+            db.execute("DELETE FROM affiliate_sessions WHERE owner_id=?", (owner,))
+            db.execute("DELETE FROM affiliate_password_resets WHERE owner_id=?", (owner,))
