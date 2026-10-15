@@ -61,6 +61,23 @@ if draft:
         "Narração opcional já gravada (MP3, WAV ou M4A)",
         type=["mp3", "wav", "m4a"],
     )
+    st.subheader("Capas automáticas")
+    st.caption("Três opções de thumbnail PNG feitas localmente com a primeira foto real do produto.")
+    if photos:
+        try:
+            from app.afiliados.thumbnails import generate_thumbnails
+            covers = generate_thumbnails(photos[0].getvalue(), draft["product"]["product_name"])
+            columns = st.columns(3)
+            for column, (style, cover) in zip(columns, covers.items()):
+                with column:
+                    st.image(cover, caption=style.title(), use_container_width=True)
+                    st.download_button(
+                        f"Baixar {style}", cover,
+                        file_name=f"afiliados-{style}.png", mime="image/png",
+                        key=f"cover-{current_render_key}-{style}",
+                    )
+        except ValueError as exc:
+            st.error(f"Não foi possível criar as capas: {exc}")
     st.caption("As legendas são distribuídas entre as fotos, sem sincronização palavra por palavra.")
     st.caption("Narração automática opcional via Edge TTS: requer internet e envia o roteiro ao serviço externo.")
     if st.button("Gerar narração em português brasileiro", disabled=not edited_script.strip()):
