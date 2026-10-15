@@ -156,6 +156,19 @@ if LOCAL_ACCOUNTS:
     from app.afiliados.media_store import MediaStore
     media_store = MediaStore(ROOT / "data" / "afiliados-media.sqlite")
 
+if not LOCAL_ACCOUNTS:
+    st.subheader("Conheça o Afiliados Creator")
+    st.info("O editor exige login. A autenticação ainda não foi configurada neste ambiente.")
+    st.markdown("**Recursos:** geração de vídeos verticais, roteiros e opções de planos.")
+    st.table({
+        "Plano": ["Grátis", "Pro", "Creator"],
+        "Vídeos por dia": ["1", "5", "Ilimitados (uso justo)"],
+        "Vídeos por anúncio": [1, 1, 3],
+        "Capas por anúncio": [0, 0, 9],
+        "Salvar projetos": ["Não", "Sim", "Sim"],
+    })
+    st.stop()
+
 if st.session_state.pop("affiliate_open_imported", False):
     st.session_state["affiliate_section"] = "Criar anúncio"
 
