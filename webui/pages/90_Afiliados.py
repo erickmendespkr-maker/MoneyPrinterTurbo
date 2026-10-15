@@ -12,8 +12,28 @@ if str(ROOT) not in sys.path:
 
 from app.afiliados.core import AffiliateBrief, CTA, prepare_draft  # noqa: E402
 
-st.set_page_config(page_title="Afiliados Creator", page_icon="🎬", layout="centered")
-st.title("🎬 Afiliados Creator")
+st.set_page_config(page_title="Afiliados Creator", page_icon="🔷", layout="wide")
+
+# Branded prototype header; watermark styling remains separate from UI colors.
+st.markdown("""
+<style>
+.ac-hero { background:linear-gradient(115deg,#101a38,#21144c 70%,#132b5b);border-radius:18px;padding:22px 26px;margin-bottom:18px;color:#fff; }
+.ac-brand {display:flex;align-items:center;gap:16px}
+.ac-mark {width:62px;height:62px;flex-shrink:0}
+.ac-name {font-family:Manrope,Arial,sans-serif;font-size:30px;font-weight:800;line-height:1.08;letter-spacing:-.6px}
+.ac-name span {background:linear-gradient(90deg,#ae51ff,#21c6ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ac-tagline {color:#d8def5;font-size:14px;margin-top:9px}
+@media(max-width:600px){.ac-name{font-size:23px}.ac-hero{padding:16px}.ac-mark{width:48px;height:48px}}
+</style>
+<div class="ac-hero"><div class="ac-brand">
+<svg class="ac-mark" viewBox="0 0 100 100" role="img" aria-label="Símbolo AC">
+<defs><linearGradient id="acgrad" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#ba3cff"/><stop offset=".52" stop-color="#493cff"/><stop offset="1" stop-color="#00c9ef"/></linearGradient></defs>
+<path d="M77 20 A39 39 0 1 0 77 80" fill="none" stroke="url(#acgrad)" stroke-width="16" stroke-linecap="round"/>
+<path d="M31 71 L50 28 L69 71 M39 57 H61" fill="none" stroke="#fff" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M81 40 L96 50 L81 60Z" fill="#00c9ef"/>
+</svg><div><div class="ac-name">Afiliados <span>Creator</span></div>
+<div class="ac-tagline">Crie anúncios com fotos reais, vídeos e capas em poucos passos.</div></div></div></div>
+""", unsafe_allow_html=True)
 st.caption("Roteiros e montagem de vídeo locais. Narração online opcional por Edge TTS, acionada somente por você.")
 st.info("Preencha os dados reais do produto. Um roteiro básico será criado localmente para sua revisão; o ChatGPT será conectado na etapa final.")
 with st.expander("Importar dados de HTML salvo"):
