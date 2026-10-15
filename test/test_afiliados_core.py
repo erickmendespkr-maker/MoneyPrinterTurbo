@@ -48,7 +48,7 @@ def test_manual_script_takes_priority():
 
 def test_input_control_characters_are_removed():
     brief = AffiliateBrief("Potes", "https://shopee.com.br/item", "Com tampa")
-    draft = prepare_draft(brief, "Oferta\\x00 revisada")
+    draft = prepare_draft(brief, "Oferta" + chr(0) + " revisada")
     assert draft["script"] == "Oferta revisada"
 
 
