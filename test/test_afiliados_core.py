@@ -14,6 +14,8 @@ def test_valid_product():
     "file:///etc/passwd",
     "https://user:pass@shopee.com.br/x",
     "https://shopee.com.br:8443/x",
+    "https://shopee.com.br:invalid/x",
+    "https://shopee.com.br:999999/x",
 ])
 def test_unsafe_urls_rejected(url):
     with pytest.raises(ValueError):
