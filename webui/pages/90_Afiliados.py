@@ -385,6 +385,37 @@ if selected_section == "Criar anúncio":
                 file_name=f"afiliados-creator-{selected_variant}.mp4",
                 mime="video/mp4",
             )
+        st.markdown("#### Pacote completo: 3 vídeos + 9 capas")
+        st.caption("Geração local em sequência. Pode levar vários minutos e consumir memória e CPU.")
+        if st.button("Gerar pacote completo ZIP", disabled=not approved or not photos or len(photos) > 8 or not edited_script.strip()):
+            try:
+                from app.afiliados.campaign import build_campaign
+                with st.spinner("Renderizando as três versões e as nove capas..."):
+                    package = build_campaign(
+                        [photo.getvalue() for photo in photos],
+                        draft["product"]["product_name"],
+                        draft["product"]["duration"],
+                        edited_script.strip(),
+                        selected_audio,
+                        selected_extension,
+                    )
+                st.session_state["affiliate_campaign_zip"] = package
+                st.session_state["affiliate_campaign_key"] = current_render_key
+                st.success("Pacote completo gerado: 3 vídeos e 9 capas.")
+            except Exception as exc:
+                st.session_state.pop("affiliate_campaign_zip", None)
+                st.session_state.pop("affiliate_campaign_key", None)
+                st.error(f"Falha na geração do pacote: {type(exc).__name__}: {exc}")
+        if st.session_state.get("affiliate_campaign_key") != current_render_key:
+            st.session_state.pop("affiliate_campaign_zip", None)
+        if st.session_state.get("affiliate_campaign_zip"):
+            st.download_button(
+                "Baixar pacote completo (ZIP)",
+                st.session_state["affiliate_campaign_zip"],
+                file_name="afiliados-creator-campanha.zip",
+                mime="application/zip",
+                key="affiliate_campaign_download",
+            )
         if store is not None:
             if st.button("Salvar projeto na minha conta local"):
                 try:
