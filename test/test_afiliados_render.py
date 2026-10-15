@@ -56,3 +56,14 @@ def test_renderer_rejects_invalid_audio_without_invoking_encoder():
     image.save(data, format="PNG")
     with pytest.raises(ValueError):
         render_mp4([data.getvalue()], 15, "Teste", audio=b"")
+
+
+@pytest.mark.parametrize("images,duration", [(None, 15), ([], 15), ([b"x"], True), ([b"x"], "15")])
+def test_renderer_rejects_bad_argument_types(images, duration):
+    with pytest.raises(ValueError):
+        render_mp4(images, duration, "Teste")
+
+
+def test_normalizer_rejects_non_bytes():
+    with pytest.raises(ValueError):
+        normalize_photo("not bytes")
