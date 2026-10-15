@@ -10,12 +10,13 @@ class PlanPolicy:
     custom_watermark_allowed: bool
     videos_per_ad: int
     thumbnails_per_ad: int
+    project_saving_allowed: bool
 
 
 PLANS = {
-    "gratis": PlanPolicy("gratis", 1, True, False, 1, 0),
-    "pro": PlanPolicy("pro", 5, True, False, 1, 0),
-    "creator": PlanPolicy("creator", None, False, True, 3, 9),
+    "gratis": PlanPolicy("gratis", 1, True, False, 1, 0, False),
+    "pro": PlanPolicy("pro", 5, True, False, 1, 0, True),
+    "creator": PlanPolicy("creator", None, False, True, 3, 9, True),
 }
 
 
@@ -40,7 +41,9 @@ def watermark_required(plan: str) -> bool:
 def require_feature(plan: str, feature: str) -> None:
     """Fail closed before premium thumbnail or campaign generation."""
     policy = get_plan_policy(plan)
-    if feature == "thumbnails":
+    if feature == "projects":
+        allowed = policy.project_saving_allowed
+    elif feature == "thumbnails":
         allowed = policy.thumbnails_per_ad > 0
     elif feature == "campaign":
         allowed = policy.videos_per_ad == 3
