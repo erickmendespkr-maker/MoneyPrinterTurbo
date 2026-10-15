@@ -14,7 +14,7 @@ from app.afiliados.core import AffiliateBrief, CTA, prepare_draft  # noqa: E402
 
 st.set_page_config(page_title="Afiliados Creator", page_icon="🎬", layout="centered")
 st.title("🎬 Afiliados Creator")
-st.caption("Modo de preparação offline. Nenhuma API externa é acionada e nenhum crédito é consumido.")
+st.caption("Roteiros e montagem de vídeo locais. Narração online opcional por Edge TTS, acionada somente por você.")
 st.info("Preencha os dados reais do produto. Um roteiro básico será criado localmente para sua revisão; o ChatGPT será conectado na etapa final.")
 with st.form("affiliate_brief"):
     product_name = st.text_input("Nome do produto", max_chars=140)
@@ -39,6 +39,7 @@ if submitted:
         st.session_state.pop("affiliate_render_key", None)
         st.session_state.pop("affiliate_generated_audio", None)
         st.session_state.pop("affiliate_voice_script", None)
+        st.session_state.pop("affiliate_voice_type", None)
         st.session_state["affiliate_draft"] = draft
 
 draft = st.session_state.get("affiliate_draft")
