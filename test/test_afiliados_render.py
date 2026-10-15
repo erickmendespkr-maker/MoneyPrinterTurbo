@@ -37,5 +37,5 @@ def test_overlay_caption_changes_pixels_without_resizing():
     original = Image.new("RGB", (720, 1280), "red")
     captioned = overlay_caption(original, "Produto real e prático")
     assert captioned.size == original.size
-    assert captioned.getpixel((30, 1150)) != original.getpixel((30, 1150))
-    assert original.getpixel((30, 1150)) == (255, 0, 0)
+    assert captioned.getpixel((360, 1120)) != original.getpixel((360, 1120))
+    assert original.getpixel((360, 1120)) == (255, 0, 0)
