@@ -30,10 +30,14 @@ def _clean(value: str, *, limit: int = MAX_TEXT) -> str:
 def validate_product_url(value: str) -> str:
     """Validate, but NEVER fetch a user-provided URL from the server."""
     url = _clean(value, limit=2048)
-    parsed = urlparse(url)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+    try:
+        parsed = urlparse(url)
+        host = parsed.hostname
+    except ValueError as exc:
+        raise ValueError("Link HTTPS inválido") from exc
+    if parsed.scheme != "https" or not host or parsed.username or parsed.password:
         raise ValueError("Use um link HTTPS válido, sem credenciais")
-    host = parsed.hostname.lower().rstrip(".")
+    host = host.lower().rstrip(".")
     if not any(host == domain or host.endswith("." + domain) for domain in SUPPORTED_SHOPS):
         raise ValueError("Loja não permitida. Informe os dados manualmente e use um link de loja suportada")
     try:
