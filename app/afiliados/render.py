@@ -55,6 +55,8 @@ def overlay_caption(photo: Image.Image, caption: str) -> Image.Image:
     """Draw readable, centered captions without modifying source image proportions."""
     if not caption:
         return photo
+    if photo.width < 100 or photo.height < 100:
+        raise ValueError("Imagem pequena demais para legendas")
     photo = photo.copy()
     drawer = ImageDraw.Draw(photo)
     try:
