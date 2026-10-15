@@ -4,7 +4,7 @@ from __future__ import annotations
 import io
 import textwrap
 from PIL import Image, ImageDraw, ImageFont
-from app.afiliados.render import normalize_photo, overlay_watermark
+from app.afiliados.render import VIDEO_VARIANTS, normalize_photo, overlay_watermark
 
 STYLES = ("impacto", "beneficio", "curiosidade")
 
@@ -16,12 +16,14 @@ def _font(size: int):
         return ImageFont.load_default(size=size)
 
 
-def generate_thumbnails(photo: bytes, product_name: str, *, watermark: bool = True) -> dict[str, bytes]:
+def generate_thumbnails(photo: bytes, product_name: str, *, watermark: bool = True, video_variant: str | None = None) -> dict[str, bytes]:
     """Return three 720x1280 PNG covers; never fabricate product imagery or claims."""
     if not isinstance(product_name, str) or not product_name.strip() or len(product_name) > 140:
         raise ValueError("Nome do produto inválido")
     if type(watermark) is not bool:
         raise ValueError("Configuração de marca-d'água inválida")
+    if video_variant is not None and video_variant not in VIDEO_VARIANTS:
+        raise ValueError("Variação de vídeo inválida")
     base = normalize_photo(photo)
     title = " ".join(product_name.split())
     styles = {
@@ -34,6 +36,9 @@ def generate_thumbnails(photo: bytes, product_name: str, *, watermark: bool = Tr
         canvas = base.copy()
         draw = ImageDraw.Draw(canvas)
         draw.rounded_rectangle((25, 65, 695, 295), radius=24, fill=background)
+        if video_variant is not None:
+            draw.rounded_rectangle((25, 310, 695, 370), radius=14, fill=background)
+            draw.text((360, 320), f"VÍDEO: {video_variant.upper()}", font=_font(24), anchor="mt", fill="white")
         draw.text((360, 90), headline, font=_font(29), anchor="mt", fill="white")
         words = title.split()
         lines = []
