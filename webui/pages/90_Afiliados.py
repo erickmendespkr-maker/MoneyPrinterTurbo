@@ -12,6 +12,12 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.afiliados.core import AffiliateBrief, CTA, prepare_draft  # noqa: E402
+from app.afiliados.plans import get_plan_policy  # noqa: E402
+
+# Fail closed: subscription verification is not connected yet.
+# Never read a premium plan from session_state, query params or uploaded JSON.
+ACTIVE_PLAN = "gratis"
+ACTIVE_POLICY = get_plan_policy(ACTIVE_PLAN)
 
 st.set_page_config(page_title="Afiliados Creator", page_icon="🔷", layout="wide")
 
@@ -198,7 +204,7 @@ if selected_section == "Criar anúncio":
         st.metric("Durações disponíveis", "15 / 20 / 30 s")
     with c3:
         st.metric("APIs pagas", "0")
-    st.caption("Os indicadores acima descrevem recursos disponíveis no protótipo, não produções realizadas.")
+    st.caption("Os indicadores acima descrevem recursos do protótipo, não produções realizadas. Capas e campanhas em lote são exclusivas do Creator.")
     with st.expander("Importar dados de HTML salvo"):
         st.caption("Teste offline: envie o HTML da página para extrair nome e descrição. Nenhum site será acessado.")
         uploaded_html = st.file_uploader("HTML do produto (máximo 2 MB)", type=["html", "htm"])
@@ -320,7 +326,7 @@ if selected_section == "Criar anúncio":
         current_render_key = render_digest.hexdigest()
         st.subheader("Capas automáticas")
         st.caption("Três opções de thumbnail PNG feitas localmente com a primeira foto real do produto.")
-        if photos:
+        if photos and ACTIVE_POLICY.thumbnails_per_ad:
             try:
                 from app.afiliados.thumbnails import generate_thumbnails
                 covers = generate_thumbnails(photos[0].getvalue(), draft["product"]["product_name"])
@@ -341,6 +347,8 @@ if selected_section == "Criar anúncio":
                         )
             except ValueError as exc:
                 st.error(f"Não foi possível criar as capas: {exc}")
+        elif photos:
+            st.info("Capas automáticas são exclusivas do plano Creator.")
         # An approval belongs to one specific script/product, never to a previous draft.
         approval_payload = json.dumps(reviewed_draft, sort_keys=True, ensure_ascii=False)
         approval_key = hashlib.sha256(approval_payload.encode("utf-8")).hexdigest()
@@ -351,7 +359,8 @@ if selected_section == "Criar anúncio":
         if len(photos or []) > 8:
             st.error("Envie no máximo 8 fotos do produto.")
         from app.afiliados.render import VIDEO_VARIANTS
-        selected_variant = st.selectbox("Versão do vídeo", VIDEO_VARIANTS, format_func=str.title, key="affiliate_video_variant")
+        selected_variant = (st.selectbox("Versão do vídeo", VIDEO_VARIANTS, format_func=str.title, key="affiliate_video_variant")
+                            if ACTIVE_POLICY.videos_per_ad == 3 else "impacto")
         if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos or len(photos) > 8 or not edited_script.strip()):
             try:
                 from app.afiliados.render import render_mp4
@@ -386,8 +395,8 @@ if selected_section == "Criar anúncio":
                 mime="video/mp4",
             )
         st.markdown("#### Pacote completo: 3 vídeos + 9 capas")
-        st.caption("Geração local em sequência. Pode levar vários minutos e consumir memória e CPU.")
-        if st.button("Gerar pacote completo ZIP", disabled=not approved or not photos or len(photos) > 8 or not edited_script.strip()):
+        st.caption("Exclusivo do Creator. Geração local em sequência, com alto uso de CPU e memória.")
+        if st.button("Gerar pacote completo ZIP", disabled=ACTIVE_POLICY.videos_per_ad != 3 or not approved or not photos or len(photos) > 8 or not edited_script.strip()):
             try:
                 from app.afiliados.campaign import build_campaign
                 with st.spinner("Renderizando as três versões e as nove capas..."):
@@ -398,6 +407,7 @@ if selected_section == "Criar anúncio":
                         edited_script.strip(),
                         selected_audio,
                         selected_extension,
+                        plan=ACTIVE_PLAN,
                     )
                 st.session_state["affiliate_campaign_zip"] = package
                 st.session_state["affiliate_campaign_key"] = current_render_key
