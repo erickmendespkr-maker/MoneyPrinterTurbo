@@ -83,10 +83,12 @@ if draft:
 
     # Fingerprint the full rendering input so an old MP4 is never offered for new assets.
     render_digest = hashlib.sha256()
+    render_digest.update(json.dumps(reviewed_draft["product"], sort_keys=True, ensure_ascii=False).encode("utf-8"))
     render_digest.update(edited_script.strip().encode("utf-8"))
     render_digest.update(str(draft["product"]["duration"]).encode("ascii"))
     for photo in photos or []:
         render_digest.update(photo.getvalue())
+        render_digest.update(photo.name.encode("utf-8"))
     if selected_audio:
         render_digest.update(selected_audio)
         render_digest.update(selected_extension.encode("ascii"))
