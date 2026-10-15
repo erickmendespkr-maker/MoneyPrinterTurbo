@@ -119,3 +119,18 @@ def test_renderer_rejects_corrupt_second_photo_before_encoding(monkeypatch):
 def test_renderer_rejects_too_many_images_without_encoding():
     with pytest.raises(ValueError, match="1 a 8"):
         render_mp4([b"x"] * 9, 15, "Roteiro válido")
+
+
+@pytest.mark.parametrize("extension", [".exe", ".ogg", "../file.mp3", ".MP3"])
+def test_renderer_rejects_unsupported_audio_extension(extension):
+    image = Image.new("RGB", (40, 40), "red")
+    data = BytesIO()
+    image.save(data, format="PNG")
+    with pytest.raises(ValueError, match="Formato de áudio"):
+        render_mp4([data.getvalue()], 15, "Teste", audio=b"audio", audio_extension=extension)
+
+
+@pytest.mark.parametrize("duration", [0, 10, 31, -15, 15.0])
+def test_renderer_rejects_unsupported_duration(duration):
+    with pytest.raises(ValueError, match="Duração inválida"):
+        render_mp4([b"placeholder"], duration, "Roteiro válido")
