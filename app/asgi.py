@@ -32,9 +32,7 @@ async def application_lifespan(_: FastAPI):
         # 只记录保护范围，不得输出 Key、长度或摘要，避免凭据进入日志系统。
         logger.info("API key authentication is enabled for /api/v1 and /tasks")
     else:
-        logger.error(
-            "API key authentication is misconfigured: app.api_key must be a string"
-        )
+        raise RuntimeError("API authentication is misconfigured: app.api_key must be a string")
 
     # 跨平台发布由当前进程线程池执行，不会在服务重启后恢复。启动时把 Redis
     # 中确认已失去执行进程的活动状态收敛为失败，避免任务永久无法删除。
