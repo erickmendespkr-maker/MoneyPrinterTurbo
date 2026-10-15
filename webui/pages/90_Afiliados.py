@@ -14,7 +14,7 @@ from app.afiliados.core import AffiliateBrief, CTA, prepare_draft  # noqa: E402
 st.set_page_config(page_title="Afiliados Creator", page_icon="🎬", layout="centered")
 st.title("🎬 Afiliados Creator")
 st.caption("Modo de preparação offline. Nenhuma API externa é acionada e nenhum crédito é consumido.")
-st.info("Preencha os dados reais do produto. O roteiro do ChatGPT será conectado na etapa final; por enquanto, você pode revisar um texto manualmente.")
+st.info("Preencha os dados reais do produto. Um roteiro básico será criado localmente para sua revisão; o ChatGPT será conectado na etapa final.")
 with st.form("affiliate_brief"):
     product_name = st.text_input("Nome do produto", max_chars=140)
     product_url = st.text_input("Link HTTPS do produto (Shopee, Mercado Livre ou Amazon)")
@@ -39,7 +39,7 @@ if submitted:
 draft = st.session_state.get("affiliate_draft")
 if draft:
     st.subheader("Revisão do anúncio")
-    st.write(draft["script"] or "Roteiro ainda não fornecido — aguardando integração com ChatGPT.")
+    st.write(draft["script"])
     st.caption("ChatGPT e Kling permanecem desativados até a etapa final. Você já pode montar um vídeo com fotos reais e áudio enviado manualmente.")
     photos = st.file_uploader(
         "Fotos reais do produto (até 8, JPEG/PNG/WEBP)",
