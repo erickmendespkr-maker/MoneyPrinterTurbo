@@ -1,0 +1,41 @@
+name: Afiliados isolated validation
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/afiliados]
+    paths:
+      - 'app/afiliados/**'
+      - 'test/test_afiliados_*.py'
+      - '.github/workflows/afiliados-isolated-validation.yml'
+permissions:
+  contents: read
+concurrency:
+  group: afiliados-isolated-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  isolated-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.11', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install minimal isolated dependencies
+        run: python -m pip install "pytest>=8,<10" "moviepy==2.2.1" "pillow>=11.3,<12" "edge-tts==7.3.1"
+      - name: Check dependency consistency
+        run: python -m pip check
+      - name: Validate syntax
+        run: python -m compileall -q app/afiliados test/test_afiliados_core.py test/test_afiliados_render.py test/test_afiliados_voice.py
+      - name: Test affiliate modules without paid APIs
+        run: python -m pytest -q test/test_afiliados_core.py test/test_afiliados_render.py test/test_afiliados_voice.py
+      - name: Dependency vulnerability audit
+        run: |
+          python -m pip install pip-audit
+          python -m pip_audit --progress-spinner off --disable-pip
