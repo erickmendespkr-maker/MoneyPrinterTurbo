@@ -124,6 +124,9 @@ def render_mp4(
     if audio is not None and audio_extension not in (".mp3", ".wav", ".m4a"):
         raise ValueError("Formato de áudio não suportado")
 
+    # Decode and validate images before invoking the encoder or parsing uploaded audio.
+    normalized = [normalize_photo(data) for data in images]
+
     # Lazy imports avoid loading video engines while editing a product brief.
     from moviepy import AudioFileClip, ImageClip, concatenate_videoclips
 
@@ -131,8 +134,8 @@ def render_mp4(
         directory = Path(temp)
         paths = []
         captions = caption_segments(script, len(images))
-        for index, data in enumerate(images):
-            photo = overlay_caption(normalize_photo(data), captions[index])
+        for index, photo_data in enumerate(normalized):
+            photo = overlay_caption(photo_data, captions[index])
             path = directory / f"photo-{index}.png"
             photo.save(path)
             paths.append(path)
