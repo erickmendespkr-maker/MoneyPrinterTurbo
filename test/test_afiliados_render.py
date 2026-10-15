@@ -194,3 +194,9 @@ def test_overlay_rejects_non_string_caption(caption):
 def test_caption_segments_rejects_bad_count(count):
     with pytest.raises(ValueError, match="Quantidade de slides inválida"):
         caption_segments("Roteiro", count)
+
+
+@pytest.mark.parametrize("photo", [None, b"not a photo", "image"])
+def test_overlay_rejects_non_image(photo):
+    with pytest.raises(ValueError, match="Imagem inválida para legenda"):
+        overlay_caption(photo, "Teste")
