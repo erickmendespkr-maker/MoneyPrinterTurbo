@@ -117,7 +117,7 @@ def render_mp4(
         raise ValueError("Envie de 1 a 8 imagens")
     if type(duration) is not int or duration not in (15, 20, 30):
         raise ValueError("Duração inválida")
-    if not isinstance(script, str) or len(script) > 1400:
+    if not isinstance(script, str) or not script.strip() or len(script) > 1400:
         raise ValueError("Roteiro inválido ou longo demais")
     if audio is not None and (not isinstance(audio, bytes) or not audio or len(audio) > MAX_AUDIO_BYTES):
         raise ValueError("Áudio inválido ou acima de 25 MB")
