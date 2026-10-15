@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
 
 from app.afiliados.core import AffiliateBrief, CTA, prepare_draft  # noqa: E402
 from app.afiliados.plans import get_plan_policy  # noqa: E402
+from app.afiliados.subscriptions import SubscriptionStore, AuthorizedProjects  # noqa: E402
 
 # Fail closed: subscription verification is not connected yet.
 # Never read a premium plan from session_state, query params or uploaded JSON.
@@ -82,7 +83,10 @@ if LOCAL_ACCOUNTS:
                         except ValueError as exc:
                             st.error(str(exc))
         st.stop()
-    store = ProjectStore(ROOT / "data" / "afiliados-projects.sqlite")
+    subscriptions = SubscriptionStore(ROOT / "data" / "afiliados-subscriptions.sqlite")
+    ACTIVE_PLAN = subscriptions.get_plan(owner_id)
+    ACTIVE_POLICY = get_plan_policy(ACTIVE_PLAN)
+    store = AuthorizedProjects(ProjectStore(ROOT / "data" / "afiliados-projects.sqlite"), subscriptions)
     from app.afiliados.media_store import MediaStore
     media_store = MediaStore(ROOT / "data" / "afiliados-media.sqlite")
 
@@ -100,7 +104,7 @@ with st.sidebar:
     )
     st.divider()
     st.caption("Marca-d'água: AC monocromático, 80% transparente.")
-    st.caption("Sem serviços pagos ativados.")
+    st.caption(f"Plano ativo: {ACTIVE_PLAN.title()} · Sem serviços pagos ativados.")
     if LOCAL_ACCOUNTS:
         st.caption("Sessão de testes local autenticada")
         if st.button("Sair da conta"):
