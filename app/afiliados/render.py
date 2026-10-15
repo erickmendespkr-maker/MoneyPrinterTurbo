@@ -80,13 +80,10 @@ def overlay_caption(photo: Image.Image, caption: str) -> Image.Image:
                 line = candidate
     if line:
         lines.append(line)
-    # Display at most six lines. An ellipsis explicitly signals omitted copy.
+    # Preserve the final call to action when a long script exceeds the overlay.
+    # The beginning is shortened explicitly; never silently hide the ending.
     if len(lines) > 6:
-        lines = lines[:6]
-        last = lines[-1]
-        while last and drawer.textbbox((0, 0), last + "…", font=font)[2] > max_width:
-            last = last[:-1]
-        lines[-1] = last.rstrip() + "…"
+        lines = ["…"] + lines[-5:]
     line_height = 45
     start_y = photo.height - 145 - len(lines) * line_height
     drawer.rounded_rectangle(
