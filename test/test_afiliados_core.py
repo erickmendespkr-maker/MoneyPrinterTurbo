@@ -22,6 +22,7 @@ def test_valid_product():
     "https://shopee.com.br/item#fragment",
     "https://shopee.com.br\\\\@evil.test/item",
     "https://shopee%2ecom.br/item",
+    "https://shopee.com.br",
 ])
 def test_unsafe_urls_rejected(url):
     with pytest.raises(ValueError):
