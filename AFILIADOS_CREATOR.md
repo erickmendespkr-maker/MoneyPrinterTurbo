@@ -169,3 +169,14 @@ Esta seção substitui as tabelas e preços históricos acima quando houver dive
 | Creator | R$ 199,90 | R$ 1.999,00 | 10 | 9 | Não | Não |
 
 Anual: dois meses grátis (16,67% de desconto). Premium tem 1 vídeo por anúncio e 3 capas; Creator tem até 3 vídeos por anúncio e 9 capas. A geração em lote consome a cota diária por vídeo, não por pacote. Não existe checkout integrado ou cobrança ativada. O backend de teste precisa de validação de direitos e controle transacional antes do lançamento.
+
+## Segurança do plano Grátis — janela contínua de 24 horas
+
+O plano Grátis libera uma nova geração somente **24 horas após a conclusão bem-sucedida do vídeo anterior**, e não à meia-noite. O contador regressivo aparece no estúdio autenticado. Exemplo: vídeo concluído às 23h59 de quinta-feira libera nova geração às 23h59 de sexta-feira. Falha de renderização não inicia o período de espera.
+
+A reserva e conclusão são transacionais em SQLite no protótipo local: tentativas de várias abas ou requisições concorrentes não podem reservar mais de um vídeo gratuito por conta; verificações ocorrem no servidor. Reservas abandonadas expiram após 6 horas no protótipo (o trabalhador definitivo deve renovar leases e reconciliar trabalhos). Existem até cinco tentativas de renderização gratuita por conta a cada hora, incluindo falhas. A política de planos pagos continua com cotas diárias pelo calendário de Brasília.
+
+Cadastro novo exige confirmação de e-mail por token exclusivo, de uso único, válido por 24 horas. Confirmação, reenvio com limitação horária e envio SMTP SSL estão implementados para o **modo local experimental**. Configure `AFILIADOS_SMTP_HOST`, `AFILIADOS_SMTP_USER`, `AFILIADOS_SMTP_PASSWORD`, `AFILIADOS_SMTP_FROM`, `AFILIADOS_SMTP_PORT=465` e `AFILIADOS_VERIFY_PAGE_URL` (HTTPS) antes de testar envio. Sem SMTP funcional, novos usuários ficam sem permissão de gerar. Nenhuma credencial de serviço foi ativada.
+
+**Limitações antes do lançamento público:** o login SQLite local continua inadequado para produção. A confirmação de e-mail não impede uma pessoa de criar várias contas com e-mails diferentes. Ainda precisamos de provedor confiável de identidade, CAPTCHA/Turnstile validado no servidor, limites por origem aplicados no proxy ou serviço de autenticação, antifraude proporcional e auditoria com atenção à privacidade. IP isolado não serve como identidade (pode ser compartilhado ou falsificado). Redis/Postgres transacional e fila com leases serão necessários para múltiplos trabalhadores, evitando perda de histórico e contagem divergente. Não afirmar proteção infalível contra múltiplas contas.
+
