@@ -1,12 +1,15 @@
-"""Transactional daily video quota ledger for authenticated local accounts.
+"""Server-side video quota ledger.
 
-Usage is counted only after successful rendering. Reservations prevent
-concurrent renders from exceeding daily limits. All times use Sao Paulo.
+Free accounts have a rolling 24-hour cooldown after a successful render,
+not a calendar-day reset. Paid plans retain Sao Paulo calendar-day quotas.
+Reservations are transactional, including concurrent browser sessions.
 """
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime
+import time
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -15,10 +18,28 @@ from app.afiliados.plans import get_plan_policy
 from app.afiliados.storage import _owner
 
 TZ = ZoneInfo("America/Sao_Paulo")
+FREE_COOLDOWN_SECONDS = 24 * 60 * 60
+# A crashed renderer must not lock an account permanently. Production
+# workers should renew leases or reconcile failed jobs before this timeout.
+RESERVATION_TTL_SECONDS = 6 * 60 * 60
+
+
+def _now() -> int:
+    return int(time.time())
 
 
 def _day() -> str:
-    return datetime.now(TZ).date().isoformat()
+    return datetime.fromtimestamp(_now(), TZ).date().isoformat()
+
+
+@dataclass(frozen=True)
+class FreeQuotaStatus:
+    remaining_seconds: int
+    in_progress: bool
+
+    @property
+    def can_generate(self) -> bool:
+        return not self.in_progress and self.remaining_seconds == 0
 
 
 class VideoQuota:
@@ -32,40 +53,95 @@ class VideoQuota:
         db.execute("""CREATE TABLE IF NOT EXISTS affiliate_video_quota (
             id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, day TEXT NOT NULL,
             status TEXT NOT NULL CHECK(status IN ('reserved','completed')),
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL, completed_at INTEGER
         )""")
+        # Upgrade existing local installations without deleting past usage.
+        columns = {row[1] for row in db.execute("PRAGMA table_info(affiliate_video_quota)")}
+        if "completed_at" not in columns:
+            db.execute("ALTER TABLE affiliate_video_quota ADD COLUMN completed_at INTEGER")
+        # Historic rows predate completed_at; use creation timestamp as a
+        # conservative approximation, instead of granting a free reset.
+        historic = db.execute("""SELECT id, created_at FROM affiliate_video_quota
+            WHERE status='completed' AND completed_at IS NULL""").fetchall()
+        for reservation_id, created_at in historic:
+            try:
+                timestamp = int(datetime.fromisoformat(created_at).timestamp())
+            except (TypeError, ValueError, OverflowError):
+                timestamp = _now()
+            db.execute("UPDATE affiliate_video_quota SET completed_at=? WHERE id=?",
+                       (timestamp, reservation_id))
         db.execute("CREATE INDEX IF NOT EXISTS idx_video_quota_owner_day ON affiliate_video_quota(owner_id,day,status)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_video_quota_cooldown ON affiliate_video_quota(owner_id,status,completed_at)")
+        db.commit()
         return db
 
+    @staticmethod
+    def _expire_stale(db: sqlite3.Connection, owner_id: str, now: int) -> None:
+        # Only expired reservations can be removed; a late completion will
+        # then fail because its reservation no longer exists.
+        db.execute("""DELETE FROM affiliate_video_quota WHERE owner_id=?
+            AND status='reserved' AND created_at < ?""",
+            (owner_id, datetime.fromtimestamp(now - RESERVATION_TTL_SECONDS, timezone.utc).isoformat()))
+        # All new timestamps are UTC, but old reservations were in Sao Paulo.
+        old = db.execute("""SELECT id, created_at FROM affiliate_video_quota
+            WHERE owner_id=? AND status='reserved'""", (owner_id,)).fetchall()
+        for reservation_id, timestamp in old:
+            try:
+                created = datetime.fromisoformat(timestamp)
+                created_ts = int(created.timestamp()) if created.tzinfo else now
+            except (ValueError, TypeError, OverflowError):
+                created_ts = now
+            if now - created_ts >= RESERVATION_TTL_SECONDS:
+                db.execute("DELETE FROM affiliate_video_quota WHERE id=? AND status='reserved'", (reservation_id,))
+
+    @staticmethod
+    def _free_state(db: sqlite3.Connection, owner_id: str, now: int) -> FreeQuotaStatus:
+        last_completed = db.execute("""SELECT MAX(completed_at) FROM affiliate_video_quota
+            WHERE owner_id=? AND status='completed'""", (owner_id,)).fetchone()[0]
+        pending = db.execute("""SELECT 1 FROM affiliate_video_quota
+            WHERE owner_id=? AND status='reserved' LIMIT 1""", (owner_id,)).fetchone() is not None
+        remaining = max(0, int(last_completed) + FREE_COOLDOWN_SECONDS - now) if last_completed is not None else 0
+        return FreeQuotaStatus(remaining_seconds=remaining, in_progress=pending)
+
+    def free_status(self, owner_id: str) -> FreeQuotaStatus:
+        """Read status from persistent server state, never browser cookies."""
+        owner_id = _owner(owner_id)
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            self._expire_stale(db, owner_id, _now())
+            return self._free_state(db, owner_id, _now())
+
     def reserve(self, owner_id: str, plan: str, count: int = 1) -> list[str]:
-        """Reserve capacity atomically before rendering. Caller must use a trusted plan."""
+        """Atomically reserve all videos before render. Plan must be server-resolved."""
         owner_id = _owner(owner_id)
         policy = get_plan_policy(plan)
         if type(count) is not int or count < 1 or count > policy.videos_per_ad:
             raise ValueError("Quantidade de vídeos não permitida para o plano")
+        now = _now()
         day = _day()
         ids = [uuid4().hex for _ in range(count)]
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            used = db.execute(
-                "SELECT COUNT(*) FROM affiliate_video_quota WHERE owner_id=? AND day=?",
-                (owner_id, day),
-            ).fetchone()[0]
-            if policy.daily_video_limit is not None and used + count > policy.daily_video_limit:
-                raise PermissionError("Limite diário de vídeos atingido")
-            db.executemany(
-                "INSERT INTO affiliate_video_quota VALUES (?,?,?,?,?)",
-                [(i, owner_id, day, "reserved", datetime.now(TZ).isoformat()) for i in ids],
-            )
+            self._expire_stale(db, owner_id, now)
+            if plan == "gratis":
+                status = self._free_state(db, owner_id, now)
+                if not status.can_generate:
+                    raise PermissionError("Limite gratuito: aguarde 24 horas após a última geração concluída")
+            else:
+                used = db.execute("""SELECT COUNT(*) FROM affiliate_video_quota
+                    WHERE owner_id=? AND day=?""", (owner_id, day)).fetchone()[0]
+                if policy.daily_video_limit is not None and used + count > policy.daily_video_limit:
+                    raise PermissionError("Limite diário de vídeos atingido")
+            db.executemany("INSERT INTO affiliate_video_quota VALUES (?,?,?,?,?,NULL)",
+                [(rid, owner_id, day, "reserved",
+                  datetime.fromtimestamp(now, timezone.utc).isoformat()) for rid in ids])
         return ids
 
     def complete(self, owner_id: str, reservation_ids: list[str]) -> None:
-        owner_id = _owner(owner_id)
-        self._change(owner_id, reservation_ids, True)
+        self._change(_owner(owner_id), reservation_ids, True)
 
     def release(self, owner_id: str, reservation_ids: list[str]) -> None:
-        owner_id = _owner(owner_id)
-        self._change(owner_id, reservation_ids, False)
+        self._change(_owner(owner_id), reservation_ids, False)
 
     def _change(self, owner_id: str, reservation_ids: list[str], success: bool) -> None:
         if (not isinstance(reservation_ids, list) or not reservation_ids
@@ -75,17 +151,18 @@ class VideoQuota:
             raise ValueError("Reservas inválidas")
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            self._expire_stale(db, owner_id, _now())
             placeholders = ",".join("?" for _ in reservation_ids)
             existing = db.execute(
                 f"SELECT id FROM affiliate_video_quota WHERE owner_id=? AND status='reserved' AND id IN ({placeholders})",
                 [owner_id, *reservation_ids],
             ).fetchall()
             if len(existing) != len(reservation_ids):
-                raise ValueError("Reserva não encontrada ou já finalizada")
+                raise ValueError("Reserva não encontrada, expirada ou já finalizada")
             if success:
                 db.execute(
-                    f"UPDATE affiliate_video_quota SET status='completed' WHERE owner_id=? AND id IN ({placeholders})",
-                    [owner_id, *reservation_ids],
+                    f"UPDATE affiliate_video_quota SET status='completed',completed_at=? WHERE owner_id=? AND id IN ({placeholders})",
+                    [_now(), owner_id, *reservation_ids],
                 )
             else:
                 db.execute(
