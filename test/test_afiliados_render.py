@@ -79,3 +79,27 @@ def test_caption_with_unbroken_product_identifier_keeps_canvas_dimensions():
 def test_caption_with_many_words_does_not_crash():
     photo = Image.new("RGB", (720, 1280), "white")
     assert overlay_caption(photo, "produto " * 400).size == (720, 1280)
+
+
+def test_real_mp4_smoke_when_explicitly_enabled(monkeypatch):
+    """Opt-in full encoder check: requires ffmpeg and takes longer than unit tests."""
+    import os
+    if os.environ.get("AFILIADOS_MP4_SMOKE") != "1":
+        pytest.skip("Defina AFILIADOS_MP4_SMOKE=1 para testar codificação MP4 real")
+    import imageio_ffmpeg
+    from moviepy import VideoFileClip
+    imageio_ffmpeg.get_ffmpeg_exe()
+    source = Image.new("RGB", (100, 100), "orange")
+    payload = BytesIO()
+    source.save(payload, format="PNG")
+    video = render_mp4([payload.getvalue()], 15, "Conheça o produto. Confira o link na bio.")
+    assert len(video) > 1000
+    assert b"ftyp" in video[:64]
+    import tempfile
+    from pathlib import Path
+    with tempfile.TemporaryDirectory() as temp:
+        target = Path(temp) / "smoke.mp4"
+        target.write_bytes(video)
+        with VideoFileClip(str(target)) as clip:
+            assert clip.size == [720, 1280]
+            assert abs(clip.duration - 15) < 0.2
