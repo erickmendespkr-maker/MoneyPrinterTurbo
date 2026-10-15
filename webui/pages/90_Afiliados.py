@@ -471,7 +471,7 @@ if selected_section == "Criar anúncio":
         )
         st.caption("As legendas são distribuídas entre as fotos, sem sincronização palavra por palavra.")
         st.caption("Narração automática opcional via Edge TTS: requer internet e envia o roteiro ao serviço externo.")
-        if st.button("Gerar narração em português brasileiro", disabled=not edited_script.strip()):
+        if st.button("Gerar narração em português brasileiro", disabled=not email_verified or not edited_script.strip()):
             try:
                 from app.afiliados.voice import generate_voice
                 with st.spinner("Gerando narração..."):
