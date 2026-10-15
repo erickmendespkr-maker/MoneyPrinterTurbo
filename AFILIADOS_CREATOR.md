@@ -81,3 +81,7 @@ Com AFILIADOS_LOCAL_ACCOUNTS=1, contas de teste podem salvar capas PNG e MP4 ger
 ## Cotas e deduplicacao de midias
 
 A biblioteca SQLite local limita cada conta a 100 arquivos e 512 MB totais, com limite individual de 12 MB por PNG e 100 MB por MP4. Gravar bytes identicos do mesmo tipo na mesma conta retorna o ID ja existente, sem duplicar armazenamento. A checagem de cota usa transacao SQLite IMMEDIATE para serializar gravacoes. O dashboard exibe uso de espaco e quantidade de arquivos. Esses limites nao substituem cotas de planos comerciais nem backup e monitoramento de disco.
+
+## Variacoes de video locais
+
+O renderizador aceita impacto, beneficio e curiosidade, com posicoes de legenda diferentes e ordem alternativa das fotos quando ha mais de uma. O dashboard permite escolher e gerar uma variacao de cada vez, sem APIs pagas. Ainda nao existe geracao automatica em lote de tres MP4 nem nove capas agrupadas por video; os tres estilos de capa atuais continuam disponiveis separadamente. Todos os videos usam o roteiro revisado e as imagens reais fornecidas.
