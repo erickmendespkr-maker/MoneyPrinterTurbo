@@ -8,7 +8,7 @@ import io
 import tempfile
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 MAX_AUDIO_BYTES = 25 * 1024 * 1024
