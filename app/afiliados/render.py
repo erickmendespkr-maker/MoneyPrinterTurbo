@@ -140,10 +140,13 @@ def render_mp4(
             photo.save(path)
             paths.append(path)
         seconds = duration / len(paths)
-        clips = [ImageClip(str(path)).with_duration(seconds) for path in paths]
-        video = concatenate_videoclips(clips, method="chain")
+        clips = []
+        video = None
         audio_clip = None
         try:
+            for path in paths:
+                clips.append(ImageClip(str(path)).with_duration(seconds))
+            video = concatenate_videoclips(clips, method="chain")
             if audio is not None:
                 audio_path = directory / ("narration" + audio_extension)
                 audio_path.write_bytes(audio)
@@ -163,7 +166,8 @@ def render_mp4(
             )
             return output.read_bytes()
         finally:
-            video.close()
+            if video is not None:
+                video.close()
             for clip in clips:
                 clip.close()
             if audio_clip is not None:
