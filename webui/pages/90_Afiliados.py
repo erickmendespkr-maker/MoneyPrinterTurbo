@@ -1,6 +1,7 @@
 """Offline affiliate workflow. API credentials and paid generation intentionally absent."""
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -34,6 +35,49 @@ st.markdown("""
 </svg><div><div class="ac-name">Afiliados <span>Creator</span></div>
 <div class="ac-tagline">Crie anúncios com fotos reais, vídeos e capas em poucos passos.</div></div></div></div>
 """, unsafe_allow_html=True)
+# Explicit local-only opt-in; public deployments must use a hardened identity provider.
+LOCAL_ACCOUNTS = os.environ.get("AFILIADOS_LOCAL_ACCOUNTS") == "1"
+owner_id = None
+store = None
+if LOCAL_ACCOUNTS:
+    from app.afiliados.auth import LocalAuth
+    from app.afiliados.storage import ProjectStore
+
+    auth = LocalAuth(ROOT / "data" / "afiliados-auth.sqlite")
+    token = st.session_state.get("affiliate_session_token")
+    owner_id = auth.resolve(token) if token else None
+    if owner_id is None:
+        st.session_state.pop("affiliate_session_token", None)
+        st.subheader("Acesso local de testes")
+        st.warning("Login experimental para uso local. Não publique esta opção na internet.")
+        login_tab, register_tab = st.tabs(("Entrar", "Criar conta de teste"))
+        with login_tab:
+            with st.form("affiliate_login"):
+                email = st.text_input("E-mail", key="affiliate_login_email")
+                password = st.text_input("Senha", type="password", key="affiliate_login_password")
+                if st.form_submit_button("Entrar"):
+                    try:
+                        st.session_state["affiliate_session_token"] = auth.login(email, password)
+                        st.rerun()
+                    except ValueError:
+                        st.error("Não foi possível entrar com essas credenciais.")
+        with register_tab:
+            with st.form("affiliate_register"):
+                email = st.text_input("E-mail", key="affiliate_register_email")
+                password = st.text_input("Senha (mínimo 12 caracteres)", type="password", key="affiliate_register_password")
+                confirm = st.text_input("Confirmar senha", type="password")
+                if st.form_submit_button("Criar conta"):
+                    if password != confirm:
+                        st.error("As senhas não coincidem.")
+                    else:
+                        try:
+                            auth.register(email, password)
+                            st.success("Conta local criada. Entre na aba Entrar.")
+                        except ValueError as exc:
+                            st.error(str(exc))
+        st.stop()
+    store = ProjectStore(ROOT / "data" / "afiliados-projects.sqlite")
+
 if st.session_state.pop("affiliate_open_imported", False):
     st.session_state["affiliate_section"] = "Criar anúncio"
 
@@ -49,6 +93,14 @@ with st.sidebar:
     st.divider()
     st.caption("Marca-d'água: AC monocromático, 80% transparente.")
     st.caption("Sem serviços pagos ativados.")
+    if LOCAL_ACCOUNTS:
+        st.caption("Sessão de testes local autenticada")
+        if st.button("Sair da conta"):
+            auth.logout(st.session_state.pop("affiliate_session_token", ""))
+            for key in list(st.session_state):
+                if key.startswith("affiliate_"):
+                    st.session_state.pop(key, None)
+            st.rerun()
 
 if selected_section == "Meus projetos":
     st.subheader("Meus projetos")
@@ -59,6 +111,7 @@ if selected_section == "Meus projetos":
             from app.afiliados.projects import import_project
             imported_draft = import_project(imported_json.getvalue())
             product = imported_draft["product"]
+            st.session_state.pop("affiliate_loaded_project_id", None)
             st.session_state["affiliate_draft"] = imported_draft
             st.session_state["affiliate_product_name"] = product["product_name"]
             st.session_state["affiliate_product_url"] = product["product_url"]
@@ -70,6 +123,32 @@ if selected_section == "Meus projetos":
             st.rerun()
         except ValueError as exc:
             st.error(str(exc))
+    if store is not None:
+        st.markdown("#### Projetos salvos na conta local")
+        saved_projects = store.list(owner_id)
+        if saved_projects:
+            options = {p["id"]: p["title"] + " · " + p["updated_at"][:16] for p in saved_projects}
+            selected_id = st.selectbox("Selecionar projeto", list(options), format_func=lambda pid: options[pid])
+            if st.button("Abrir projeto salvo"):
+                saved_draft = store.load(owner_id, selected_id)
+                product = saved_draft["product"]
+                st.session_state["affiliate_draft"] = saved_draft
+                st.session_state["affiliate_product_name"] = product["product_name"]
+                st.session_state["affiliate_product_url"] = product["product_url"]
+                st.session_state["affiliate_product_features"] = product["features"]
+                st.session_state["affiliate_loaded_project_id"] = selected_id
+                for key in ("affiliate_review_script", "affiliate_mp4", "affiliate_render_key", "affiliate_generated_audio", "affiliate_approval_key"):
+                    st.session_state.pop(key, None)
+                st.session_state["affiliate_approved"] = False
+                st.session_state["affiliate_open_imported"] = True
+                st.rerun()
+            if st.button("Excluir projeto selecionado"):
+                store.delete(owner_id, selected_id)
+                if st.session_state.get("affiliate_loaded_project_id") == selected_id:
+                    st.session_state.pop("affiliate_loaded_project_id", None)
+                st.rerun()
+        else:
+            st.caption("Nenhum projeto salvo nesta conta.")
     if st.session_state.get("affiliate_draft"):
         st.markdown("#### Projeto da sessão")
         st.json(st.session_state["affiliate_draft"]["product"])
@@ -163,6 +242,7 @@ if selected_section == "Criar anúncio":
             # The checkbox widget may have been instantiated in a prior run;
             # clear its value before the widget is created below.
             st.session_state["affiliate_approved"] = False
+            st.session_state.pop("affiliate_loaded_project_id", None)
             st.session_state["affiliate_draft"] = draft
 
     draft = st.session_state.get("affiliate_draft")
@@ -266,6 +346,14 @@ if selected_section == "Criar anúncio":
                 file_name="afiliados-creator.mp4",
                 mime="video/mp4",
             )
+        if store is not None:
+            if st.button("Salvar projeto na minha conta local"):
+                try:
+                    project_id = store.save(owner_id, reviewed_draft, st.session_state.get("affiliate_loaded_project_id"))
+                    st.session_state["affiliate_loaded_project_id"] = project_id
+                    st.success("Projeto salvo no banco local desta conta.")
+                except ValueError as exc:
+                    st.error(str(exc))
         st.download_button(
             "Baixar projeto do anúncio (JSON)",
             data=json.dumps(reviewed_draft, ensure_ascii=False, indent=2),
