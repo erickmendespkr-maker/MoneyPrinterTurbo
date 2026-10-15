@@ -103,3 +103,19 @@ def test_real_mp4_smoke_when_explicitly_enabled(monkeypatch):
         with VideoFileClip(str(target)) as clip:
             assert clip.size == [720, 1280]
             assert abs(clip.duration - 15) < 0.2
+
+
+def test_renderer_rejects_corrupt_second_photo_before_encoding(monkeypatch):
+    """Never invoke MoviePy/ffmpeg after a later image fails validation."""
+    import sys
+    image = Image.new("RGB", (40, 40), "red")
+    data = BytesIO()
+    image.save(data, format="PNG")
+    monkeypatch.setitem(sys.modules, "moviepy", None)
+    with pytest.raises(ValueError, match="imagem inválido|imagem vazia|imagem inválida|Arquivo de imagem"):
+        render_mp4([data.getvalue(), b"corrupt"], 15, "Roteiro válido")
+
+
+def test_renderer_rejects_too_many_images_without_encoding():
+    with pytest.raises(ValueError, match="1 a 8"):
+        render_mp4([b"x"] * 9, 15, "Roteiro válido")
