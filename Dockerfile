@@ -5,7 +5,7 @@ FROM python:3.11-slim-bullseye
 WORKDIR /MoneyPrinterTurbo
 
 # 设置/MoneyPrinterTurbo目录权限为777
-RUN chmod 777 /MoneyPrinterTurbo
+RUN chmod 755 /MoneyPrinterTurbo
 
 ENV PYTHONPATH="/MoneyPrinterTurbo"
 
@@ -93,6 +93,11 @@ RUN if [ "$PIP_USE_OFFICIAL" = "1" ]; then \
 
 # Now copy the rest of the codebase into the image
 COPY . .
+
+# Run application as a non-root user; writable runtime state stays under the project directory.
+RUN useradd --system --uid 10001 --home /MoneyPrinterTurbo --shell /usr/sbin/nologin mpt \
+    && chown -R mpt:mpt /MoneyPrinterTurbo
+USER mpt
 
 # Expose the port the app runs on
 EXPOSE 8501
