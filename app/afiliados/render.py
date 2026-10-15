@@ -55,6 +55,8 @@ def caption_segments(script: str, count: int) -> list[str]:
 
 def overlay_caption(photo: Image.Image, caption: str) -> Image.Image:
     """Draw readable, centered captions without modifying source image proportions."""
+    if not isinstance(caption, str):
+        raise ValueError("Legenda inválida")
     if not caption:
         return photo
     if photo.width < 100 or photo.height < 100:
