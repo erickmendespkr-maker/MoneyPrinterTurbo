@@ -9,6 +9,7 @@ import json
 import zipfile
 
 from app.afiliados.render import VIDEO_VARIANTS, MAX_IMAGES, normalize_photo, render_mp4
+from app.afiliados.plans import require_feature
 from app.afiliados.thumbnails import generate_thumbnails
 
 MAX_BUNDLE_BYTES = 350 * 1024 * 1024
@@ -19,12 +20,14 @@ def build_campaign(
     audio: bytes | None = None, audio_extension: str = ".mp3",
     watermark: bool = True,
     renderer=None,
+    *, plan: str = "gratis",
 ) -> bytes:
     """Return ZIP with videos/<variant>.mp4 and covers/<variant>/<style>.png.
 
     Fail the whole package if any render fails; never label an incomplete ZIP
     as a successful three-video campaign.
     """
+    require_feature(plan, "campaign")
     if not isinstance(images, list) or not (1 <= len(images) <= MAX_IMAGES):
         raise ValueError("Envie de 1 a 8 fotos reais")
     if not isinstance(product_name, str) or not product_name.strip() or len(product_name) > 140:
