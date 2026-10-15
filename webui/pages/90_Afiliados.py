@@ -346,6 +346,20 @@ if selected_section == "Criar anúncio":
     if LOCAL_ACCOUNTS:
         if not email_verified:
             st.warning("Confirme seu e-mail para desbloquear a geração de vídeos.")
+            if st.button("Reenviar e-mail de confirmação", key="affiliate_resend_logged_in"):
+                try:
+                    from app.afiliados.verification_email import send_verification_email
+                    account_email = auth.verified_account_email(owner_id)
+                    if not account_email:
+                        raise RuntimeError("Conta não encontrada")
+                    confirmation = auth.create_verification_token(account_email)
+                    if confirmation:
+                        send_verification_email(account_email, confirmation)
+                    st.success("Verifique a caixa de entrada ou a pasta de spam.")
+                except ValueError as exc:
+                    st.warning("Limite de reenvios atingido. Aguarde antes de tentar novamente.")
+                except (RuntimeError, OSError):
+                    st.error("O envio de e-mails está indisponível. Procure o administrador.")
         if ACTIVE_PLAN == "gratis":
             @st.fragment(run_every="1s")
             def free_cooldown_counter():
