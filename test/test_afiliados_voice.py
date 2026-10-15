@@ -3,16 +3,16 @@ import pytest
 from app.afiliados.voice import VOICE_IDS, synthesize_voice
 
 
-@pytest.mark.asyncio
-async def test_voice_rejects_empty_script():
+def test_voice_rejects_empty_script():
     with pytest.raises(ValueError):
-        await synthesize_voice("")
+        import asyncio
+        asyncio.run(synthesize_voice(""))
 
 
-@pytest.mark.asyncio
-async def test_voice_rejects_invalid_voice():
+def test_voice_rejects_invalid_voice():
     with pytest.raises(ValueError):
-        await synthesize_voice("Texto", "desconhecida")
+        import asyncio
+        asyncio.run(synthesize_voice("Texto", "desconhecida"))
 
 
 def test_voice_allowlist():
