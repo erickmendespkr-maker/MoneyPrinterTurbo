@@ -57,3 +57,7 @@ A interface Streamlit ganhou navegação lateral com Criar anúncio, Meus projet
 ## Retomada de projetos exportados
 
 A aba **Meus projetos** aceita importar um JSON do Afiliados Creator (versão de esquema 1, até 16 KB). A importação valida URL, campos e roteiro, reconstrói as instruções internas e mantém integrações pagas desabilitadas, mesmo que o arquivo contenha configurações alteradas. Ao importar, volta à tela Criar anúncio e exige nova aprovação antes de renderizar. As fotos, áudios e MP4 não fazem parte do JSON e precisam ser enviados novamente. Não há armazenamento persistente por usuário.
+
+## Persistencia de projetos (backend experimental)
+
+O modulo app/afiliados/storage.py oferece SQLite para salvar, listar, abrir, atualizar e excluir projetos por proprietario. A interface nao usa esse armazenamento porque ainda falta autenticacao confiavel. O identificador do proprietario deve vir da sessao validada pelo servidor. O banco e local, nao nuvem; fotos, audios e videos nao sao persistidos nesta etapa.
