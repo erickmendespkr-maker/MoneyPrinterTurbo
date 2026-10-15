@@ -350,6 +350,8 @@ if selected_section == "Criar anúncio":
         approved = st.checkbox("Revisei o roteiro e confirmo que as informações do produto são verdadeiras.", key="affiliate_approved")
         if len(photos or []) > 8:
             st.error("Envie no máximo 8 fotos do produto.")
+        from app.afiliados.render import VIDEO_VARIANTS
+        selected_variant = st.selectbox("Versão do vídeo", VIDEO_VARIANTS, format_func=str.title, key="affiliate_video_variant")
         if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos or len(photos) > 8 or not edited_script.strip()):
             try:
                 from app.afiliados.render import render_mp4
@@ -360,13 +362,14 @@ if selected_section == "Criar anúncio":
                         edited_script.strip(),
                         selected_audio,
                         selected_extension,
+                        variant=selected_variant,
                     )
                 st.session_state["affiliate_mp4"] = mp4
-                st.session_state["affiliate_render_key"] = current_render_key
+                st.session_state["affiliate_render_key"] = current_render_key + ":" + selected_variant
                 st.success("Vídeo montado localmente. Nenhuma API paga foi utilizada.")
             except Exception as exc:
                 st.error(f"Não foi possível montar o vídeo: {type(exc).__name__}: {exc}")
-        if st.session_state.get("affiliate_mp4") and st.session_state.get("affiliate_render_key") != current_render_key:
+        if st.session_state.get("affiliate_mp4") and st.session_state.get("affiliate_render_key") != current_render_key + ":" + selected_variant:
             st.session_state.pop("affiliate_mp4", None)
         if st.session_state.get("affiliate_mp4"):
             st.video(st.session_state["affiliate_mp4"])
@@ -379,7 +382,7 @@ if selected_section == "Criar anúncio":
             st.download_button(
                 "Baixar MP4",
                 st.session_state["affiliate_mp4"],
-                file_name="afiliados-creator.mp4",
+                file_name=f"afiliados-creator-{selected_variant}.mp4",
                 mime="video/mp4",
             )
         if store is not None:
