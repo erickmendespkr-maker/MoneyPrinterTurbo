@@ -60,3 +60,13 @@ def test_only_creator_has_multiple_videos_and_thumbnails():
     assert creator.thumbnails_per_ad == 9
     require_feature("creator", "thumbnails")
     require_feature("creator", "campaign")
+
+
+def test_project_saving_is_paid_only():
+    from app.afiliados.plans import require_feature
+    assert not get_plan_policy("gratis").project_saving_allowed
+    with pytest.raises(PermissionError):
+        require_feature("gratis", "projects")
+    for plan in ("pro", "creator"):
+        assert get_plan_policy(plan).project_saving_allowed
+        require_feature(plan, "projects")
