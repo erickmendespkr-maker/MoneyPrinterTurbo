@@ -40,6 +40,11 @@ jobs:
         run: python -m compileall -q app/afiliados test/test_afiliados_core.py test/test_afiliados_render.py test/test_afiliados_voice.py
       - name: Test affiliate modules with patched Pillow despite upstream MoviePy metadata cap
         run: python -m pytest -q test/test_afiliados_core.py test/test_afiliados_render.py test/test_afiliados_voice.py
+      - name: Real MP4 encoding smoke test on Linux
+        if: runner.os == 'Linux'
+        env:
+          AFILIADOS_MP4_SMOKE: '1'
+        run: python -m pytest -q test/test_afiliados_render.py -k real_mp4_smoke
       - name: Dependency vulnerability audit
         if: always()
         run: |
