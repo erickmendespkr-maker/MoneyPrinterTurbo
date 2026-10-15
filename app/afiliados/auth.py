@@ -12,6 +12,8 @@ import re
 import secrets
 import sqlite3
 import time
+
+from app.afiliados.auth_limits import enforce_limit
 from pathlib import Path
 
 EMAIL = re.compile(r"^[^\s@]{1,64}@[^\s@]{1,190}$")
@@ -69,6 +71,8 @@ class LocalAuth:
     def login(self, email: str, password: str) -> str:
         email = self._credentials(email, password)
         with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            enforce_limit(db, "login", email, maximum=8, window=900)
             row = db.execute("SELECT id,salt,password_hash FROM affiliate_users WHERE email=?", (email,)).fetchone()
             # Perform expensive hashing even when email is unknown to reduce timing leakage.
             salt = row[1] if row else b"\x00" * 16
@@ -103,6 +107,7 @@ class LocalAuth:
         normalized = email.strip().casefold()
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            enforce_limit(db, "reset", normalized, maximum=3, window=3600)
             row = db.execute("SELECT id FROM affiliate_users WHERE email=?", (normalized,)).fetchone()
             if row is None:
                 return None
