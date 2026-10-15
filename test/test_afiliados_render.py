@@ -134,3 +134,19 @@ def test_renderer_rejects_unsupported_audio_extension(extension):
 def test_renderer_rejects_unsupported_duration(duration):
     with pytest.raises(ValueError, match="Duração inválida"):
         render_mp4([b"placeholder"], duration, "Roteiro válido")
+
+
+def test_long_caption_preserves_last_call_to_action(monkeypatch):
+    from PIL import ImageDraw
+    drawn = []
+    original = ImageDraw.ImageDraw.text
+
+    def recording_text(self, xy, text, *args, **kwargs):
+        drawn.append(text)
+        return original(self, xy, text, *args, **kwargs)
+
+    monkeypatch.setattr(ImageDraw.ImageDraw, "text", recording_text)
+    photo = Image.new("RGB", (720, 1280), "white")
+    overlay_caption(photo, ("benefício " * 150) + 'Comente "EU QUERO"')
+    assert any("EU QUERO" in text for text in drawn)
+    assert drawn[0] == "…"
