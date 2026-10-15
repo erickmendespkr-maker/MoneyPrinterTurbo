@@ -72,11 +72,11 @@ def extract_product_metadata(page_html: str) -> dict[str, str]:
                 if source == "image" and isinstance(value, list):
                     value = next((v for v in value if isinstance(v, str)), "")
                 if isinstance(value, str) and value.strip() and target not in result:
-                    result[target] = re.sub(r"\\s+", " ", html.unescape(value)).strip()[:limit]
+                    result[target] = " ".join(html.unescape(value).split())[:limit]
     for source, target, limit in (("og:title", "name", 140), ("og:description", "description", 3000), ("og:image", "image_url", 2048)):
         value = parser.meta.get(source)
         if value and target not in result:
-            result[target] = re.sub(r"\\s+", " ", value).strip()[:limit]
+            result[target] = " ".join(value.split())[:limit]
     # Never trust arbitrary image URLs for server-side downloads.
     if "image_url" in result and not result["image_url"].startswith("https://"):
         del result["image_url"]
