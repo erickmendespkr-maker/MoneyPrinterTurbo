@@ -59,3 +59,13 @@ def test_long_product_description_keeps_cta_and_limit():
     draft = prepare_draft(brief)
     assert len(draft["script"]) <= 1400
     assert draft["script"].endswith('Comente "EU QUERO" para receber o link!')
+
+
+@pytest.mark.parametrize("field,value", [
+    ("duration", True), ("duration", "15"), ("cta", []), ("voice", {}),
+])
+def test_brief_rejects_invalid_field_types(field, value):
+    kwargs = {"product_name": "Potes", "product_url": "https://shopee.com.br/item", "features": "Com tampa"}
+    kwargs[field] = value
+    with pytest.raises(ValueError):
+        AffiliateBrief(**kwargs).validate()
