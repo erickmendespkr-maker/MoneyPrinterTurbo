@@ -5,10 +5,11 @@ No downloads, shell=True, subprocess calls, external providers or billing.
 from __future__ import annotations
 
 import io
+import re
 import tempfile
 from pathlib import Path
 
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageDraw, ImageFont, ImageOps, UnidentifiedImageError
 
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 MAX_AUDIO_BYTES = 25 * 1024 * 1024
@@ -32,6 +33,62 @@ def normalize_photo(data: bytes, target: tuple[int, int] = (720, 1280)) -> Image
     contained = ImageOps.contain(photo, target, method=Image.Resampling.LANCZOS)
     canvas.paste(contained, ((target[0] - contained.width) // 2, (target[1] - contained.height) // 2))
     return canvas
+
+
+
+def caption_segments(script: str, count: int) -> list[str]:
+    """Divide supplied copy across slides without fabricating product claims."""
+    if count < 1 or count > MAX_IMAGES:
+        raise ValueError("Quantidade de slides inválida")
+    words = re.findall(r"\\S+", script.strip())
+    if not words:
+        return [""] * count
+    return [
+        " ".join(words[i * len(words) // count : (i + 1) * len(words) // count])
+        for i in range(count)
+    ]
+
+
+def overlay_caption(photo: Image.Image, caption: str) -> Image.Image:
+    """Draw readable, centered captions without modifying source image proportions."""
+    if not caption:
+        return photo
+    photo = photo.copy()
+    drawer = ImageDraw.Draw(photo)
+    try:
+        font = ImageFont.truetype("DejaVuSans.ttf", 34)
+    except OSError:
+        font = ImageFont.load_default(size=34)
+    max_width = photo.width - 84
+    lines: list[str] = []
+    line = ""
+    for word in caption.split():
+        candidate = (line + " " + word).strip()
+        if line and drawer.textbbox((0, 0), candidate, font=font)[2] > max_width:
+            lines.append(line)
+            line = word
+        else:
+            line = candidate
+    if line:
+        lines.append(line)
+    # Keep the visual area manageable; complete copy remains in the JSON draft.
+    lines = lines[:6]
+    line_height = 45
+    start_y = photo.height - 145 - len(lines) * line_height
+    drawer.rounded_rectangle(
+        (24, start_y - 20, photo.width - 24, start_y + len(lines) * line_height + 15),
+        radius=18,
+        fill=(0, 0, 0),
+    )
+    for i, text in enumerate(lines):
+        drawer.text(
+            (photo.width // 2, start_y + i * line_height),
+            text,
+            font=font,
+            fill="white",
+            anchor="mt",
+        )
+    return photo
 
 
 def render_mp4(
@@ -59,8 +116,9 @@ def render_mp4(
     with tempfile.TemporaryDirectory(prefix="mpt-affiliate-") as temp:
         directory = Path(temp)
         paths = []
+        captions = caption_segments(script, len(images))
         for index, data in enumerate(images):
-            photo = normalize_photo(data)
+            photo = overlay_caption(normalize_photo(data), captions[index])
             path = directory / f"photo-{index}.png"
             photo.save(path)
             paths.append(path)
