@@ -75,5 +75,8 @@ skip_covered = true
 packages = ["app"]
 
 [tool.uv]
+# MoviePy 2.2.1 metadata caps Pillow below 12 despite our image-only use.
+# Override that metadata only for uv resolution; integration tests remain mandatory.
+override-dependencies = ["pillow>=12.3.0,<13"]
 # 当前项目以应用运行形态为主，不作为可发布的 Python 包安装。
 package = false
