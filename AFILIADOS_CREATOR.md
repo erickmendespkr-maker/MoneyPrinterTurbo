@@ -65,3 +65,7 @@ O modulo app/afiliados/storage.py oferece SQLite para salvar, listar, abrir, atu
 ## Autenticacao local experimental
 
 O modulo app/afiliados/auth.py implementa cadastro e login local, hashing scrypt com salt aleatorio, tokens de sessao opacos armazenados como hash e logout. Ainda nao esta conectado a interface Streamlit. Antes de habilitar acesso publico sao necessarios HTTPS, limitacao de tentativas, verificacao de e-mail, recuperacao de senha, protecao CSRF, revisao de sessao e testes integrados. Nao confundir este prototipo com autenticacao pronta para producao.
+
+## Teste local com login e projetos
+
+A interface Streamlit agora integra o login experimental e o ProjectStore apenas quando a variavel de ambiente AFILIADOS_LOCAL_ACCOUNTS=1. Por padrao, o login permanece desabilitado. Com a opcao habilitada, o usuario pode cadastrar uma conta local, entrar, salvar o rascunho editado, listar, reabrir e excluir projetos. Os arquivos de imagem, audio e video nao sao persistidos; ao reabrir, envie novamente as midias e revise o roteiro. O banco fica em data/afiliados-auth.sqlite e data/afiliados-projects.sqlite. Uso exclusivamente local, sem exposicao publica. Nao usar este login como autenticacao de producao: faltam rate limiting, verificacao de e-mail, recuperacao de senha e endurecimento das sessoes.
