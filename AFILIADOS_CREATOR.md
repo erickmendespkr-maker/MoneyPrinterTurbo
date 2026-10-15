@@ -144,3 +144,7 @@ Configurar AFILIADOS_RESET_PAGE_URL com a URL HTTPS **exata** da página Streaml
 5. Obter CI e auditoria de dependências aprovados; revisar termos, privacidade e tratamento de dados.
 
 Nenhum desses itens deve ser considerado concluído apenas por estar documentado.
+
+## Preços comerciais definidos para planejamento (2026-10-15)
+
+Grátis: R$ 0/mês. Pro: R$ 39,90/mês. Creator: R$ 119,90/mês. O Creator oferece geração de vídeos sem cota diária fixa, sujeita a política transparente de uso justo, fila de processamento, limite de concorrência e proteção contra abuso. Não confundir vídeos ilimitados com capacidade computacional simultânea ilimitada, nem com geração cinematográfica por APIs externas. Estes preços são referências comerciais, não cobranças ativadas: não existe checkout de produção ou assinatura paga integrada. Antes da comercialização, medir custo real por vídeo, estabelecer política de uso justo, transparência de consumo e proteção de cotas no servidor.
