@@ -124,6 +124,14 @@ def render_mp4(
         raise ValueError("Áudio inválido ou acima de 25 MB")
     if audio is not None and audio_extension not in (".mp3", ".wav", ".m4a"):
         raise ValueError("Formato de áudio não suportado")
+    # Reject invalid binary signatures before invoking the external media decoder.
+    if audio is not None:
+        if audio_extension == ".wav" and not (audio.startswith(b"RIFF") and audio[8:12] == b"WAVE"):
+            raise ValueError("Arquivo WAV inválido")
+        if audio_extension == ".m4a" and audio[4:8] != b"ftyp":
+            raise ValueError("Arquivo M4A inválido")
+        if audio_extension == ".mp3" and not (audio.startswith(b"ID3") or (len(audio) >= 2 and audio[0] == 0xFF and (audio[1] & 0xE0) == 0xE0)):
+            raise ValueError("Arquivo MP3 inválido")
 
     # Decode and validate images before invoking the encoder or parsing uploaded audio.
     normalized = [normalize_photo(data) for data in images]
