@@ -53,3 +53,7 @@ A página Streamlit usa um cabeçalho azul/roxo com monograma A dentro de C e ti
 ## Dashboard inicial
 
 A interface Streamlit ganhou navegação lateral com Criar anúncio, Meus projetos, Biblioteca, Templates e Planos, além de um resumo do estúdio de criação. Somente a seção Criar anúncio executa o fluxo de geração existente. Meus projetos exibe o rascunho da sessão; Biblioteca e Templates descrevem recursos atuais; Planos informa políticas propostas, sem cobrar nem impor quotas. Não há persistência de histórico nem autenticação neste estágio. O layout não é ainda uma reprodução integral do mockup aprovado.
+
+## Retomada de projetos exportados
+
+A aba **Meus projetos** aceita importar um JSON do Afiliados Creator (versão de esquema 1, até 16 KB). A importação valida URL, campos e roteiro, reconstrói as instruções internas e mantém integrações pagas desabilitadas, mesmo que o arquivo contenha configurações alteradas. Ao importar, volta à tela Criar anúncio e exige nova aprovação antes de renderizar. As fotos, áudios e MP4 não fazem parte do JSON e precisam ser enviados novamente. Não há armazenamento persistente por usuário.
