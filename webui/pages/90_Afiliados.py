@@ -36,6 +36,7 @@ if submitted:
     else:
         st.session_state.pop("affiliate_mp4", None)
         st.session_state.pop("affiliate_review_script", None)
+        st.session_state.pop("affiliate_render_key", None)
         st.session_state["affiliate_draft"] = draft
 
 draft = st.session_state.get("affiliate_draft")
