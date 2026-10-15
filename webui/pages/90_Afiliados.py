@@ -41,7 +41,8 @@ if submitted:
 draft = st.session_state.get("affiliate_draft")
 if draft:
     st.subheader("Revisão do anúncio")
-    st.write(draft["script"])
+    edited_script = st.text_area("Revise o roteiro antes de gerar", value=draft["script"], max_chars=1400, key="affiliate_review_script")
+    reviewed_draft = {**draft, "script": edited_script.strip()}
     st.caption("ChatGPT e Kling permanecem desativados até a etapa final. Você já pode montar um vídeo com fotos reais e áudio enviado manualmente.")
     photos = st.file_uploader(
         "Fotos reais do produto (até 8, JPEG/PNG/WEBP)",
