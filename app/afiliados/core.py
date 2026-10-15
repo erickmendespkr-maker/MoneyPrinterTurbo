@@ -90,9 +90,20 @@ def make_openai_prompt(brief: AffiliateBrief) -> dict[str, str]:
     return {"system": system, "user": user}
 
 
+def local_script(brief: AffiliateBrief) -> str:
+    """Create a conservative offline draft using only user-supplied product facts."""
+    brief.validate()
+    name = _clean(brief.product_name, limit=140).rstrip(".!?")
+    facts = _clean(brief.features).replace("\\n", " ").strip().rstrip(".!?")
+    # Avoid automatically incorporating price notes: they can become stale.
+    return f"Conheça {name}. {facts}. {CTA[brief.cta]}"
+
+
 def prepare_draft(brief: AffiliateBrief, script: str = "") -> dict:
     brief.validate()
     script = _clean(script, limit=MAX_SCRIPT)
+    if not script:
+        script = _clean(local_script(brief), limit=MAX_SCRIPT)
     return {
         "schema_version": 1,
         "status": "aguardando_aprovacao",
