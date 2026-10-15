@@ -21,7 +21,7 @@ CTA = {
 def _clean(value: str, *, limit: int = MAX_TEXT) -> str:
     if not isinstance(value, str):
         raise ValueError("O campo deve ser texto")
-    value = re.sub(r"[\\x00-\\x08\\x0b-\\x1f\\x7f]", "", value).strip()
+    value = re.sub(r"[\x00-\x08\x0b-\x1f\x7f]", "", value).strip()
     if len(value) > limit:
         raise ValueError("Texto maior que o limite permitido")
     return value
