@@ -150,3 +150,9 @@ def test_long_caption_preserves_last_call_to_action(monkeypatch):
     overlay_caption(photo, ("benefício " * 150) + 'Comente "EU QUERO"')
     assert any("EU QUERO" in text for text in drawn)
     assert drawn[0] == "…"
+
+
+@pytest.mark.parametrize("target", [(0, 1280), (720, 5000), (-1, 20), (True, 100), (720.0, 1280), [720, 1280]])
+def test_normalizer_rejects_invalid_target_dimensions(target):
+    with pytest.raises(ValueError, match="Dimensões"):
+        normalize_photo(b"placeholder", target=target)
