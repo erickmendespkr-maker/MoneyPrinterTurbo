@@ -113,35 +113,11 @@ def overlay_caption(photo: Image.Image, caption: str) -> Image.Image:
 
 
 
-def overlay_watermark(photo: Image.Image, *, opacity: int = 204) -> Image.Image:
-    """Apply the official small bottom-right watermark (80% opaque by default)."""
-    if not isinstance(photo, Image.Image) or photo.width < 200 or photo.height < 200:
-        raise ValueError("Imagem inválida para marca-d'água")
-    if type(opacity) is not int or not 0 <= opacity <= 255:
-        raise ValueError("Opacidade inválida")
-    base = photo.convert("RGBA")
-    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(layer)
-    scale = min(photo.width / 720, photo.height / 1280)
-    font_size = max(11, round(19 * scale))
-    try:
-        font = ImageFont.truetype("DejaVuSans.ttf", font_size)
-    except OSError:
-        font = ImageFont.load_default(size=font_size)
-    margin = max(12, round(28 * scale))
-    line_height = font_size + max(2, round(3 * scale))
-    text_lines = ("Afiliados", "Creator")
-    text_width = max(draw.textbbox((0, 0), line, font=font)[2] for line in text_lines)
-    icon_size = round(32 * scale)
-    gap = round(10 * scale)
-    x = photo.width - margin - text_width - icon_size - gap
-    y = photo.height - margin - 2 * line_height
-    white = (255, 255, 255, opacity)
-    draw.rounded_rectangle((x, y + 2, x + icon_size, y + icon_size + 2), radius=max(3, round(6 * scale)), outline=white, width=max(1, round(2 * scale)))
-    draw.polygon(((x + round(11 * scale), y + round(8 * scale)), (x + round(11 * scale), y + round(26 * scale)), (x + round(25 * scale), y + round(17 * scale))), fill=white)
-    for i, line in enumerate(text_lines):
-        draw.text((x + icon_size + gap, y + i * line_height), line, font=font, fill=white)
-    return Image.alpha_composite(base, layer).convert("RGB")
+def overlay_watermark(photo: Image.Image, *, opacity: int = 51) -> Image.Image:
+    """Approved grayscale A-in-C watermark; 80% transparent by default."""
+    from app.afiliados.branding import overlay_brand_watermark
+    return overlay_brand_watermark(photo, opacity=opacity)
+
 
 def render_mp4(
     images: list[bytes],
