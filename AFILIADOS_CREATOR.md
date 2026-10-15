@@ -41,3 +41,7 @@ A interface Streamlit permite enviar um arquivo HTML salvo da página do produto
 ## Sugestão offline a partir do link
 
 A interface agora permite colar um URL HTTPS de loja suportada e sugerir um nome a partir do slug da URL. Isso não faz requisição HTTP nem comprova nome, preço ou atributos do produto. URLs com apenas identificadores podem não gerar sugestão. A importação completa somente por link permanece pendente de integração segura e autorização dos provedores.
+
+## Identidade visual aprovada
+
+Marca: **Afiliados Creator**. Símbolo escolhido: monograma A dentro de C (conceito nº 3). A marca-d'água padrão dos vídeos e capas é **monocromática branca, com 80% de transparência (20% de opacidade, alpha 51/255)**, pequena, no canto inferior direito, acompanhada do nome Afiliados Creator. O código atual desenha uma aproximação vetorial desse conceito com Pillow; ainda será necessário produzir e revisar o ativo vetorial definitivo antes de afirmar correspondência pixel a pixel com a arte aprovada. A marca-d'água permanece obrigatória no protótipo para os planos Grátis e Pro; personalização do Creator exige autenticação e validação de plano no servidor antes de disponibilizar.
