@@ -37,3 +37,9 @@ Data: 2026-10-15. Escopo: branch `feature/afiliados`, sem publicação nem crede
 
 - Em ambiente Linux de validação, `moviepy 2.2.1` com `Pillow 12.3.0` gerou um MP4 real H.264, 720x1280, a partir de três imagens e legendas desenhadas via Pillow; arquivo de saída de 19.401 bytes. Também passou um teste simples com uma imagem.
 - **Limites:** não foi execução da suíte do repositório, nem teste com narração/Windows, nem auditoria de todas as dependências. O clone do GitHub falhou por ausência de DNS no ambiente de validação. Os metadados do MoviePy continuam declarando `pillow<12.0`, portanto o instalador pip legado continua inconsistente.
+
+## Resultado da auditoria completa (2026-10-15)
+
+A auditoria `pip-audit` sobre as versões resolvidas por `uv` **falhou** após confirmar Pillow 12.3.0. O relatório sinalizou outros pacotes: `anyio 4.13.0` (correção 4.14.2), `cryptography 49.0.0` (50.0.0), `fsspec 2026.3.0` (2026.6.0), `gitpython 3.1.50` (3.1.60), `multidict 6.7.1` (6.9.1), `setuptools 82.0.1` (83.0.0), `starlette 1.2.1` (1.3.1) e `urllib3 2.7.0` (2.8.0). Há entradas duplicadas na base de vulnerabilidades; isso não significa vulnerabilidades independentes em cada linha.
+
+O workflow de atualização de lock foi ampliado para tentar atualizar esses pacotes. **Não declarar segurança aprovada** até obter auditoria verde e executar os testes; atualizar dependências pode gerar incompatibilidades.
