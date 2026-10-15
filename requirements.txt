@@ -1,5 +1,6 @@
 # Keep legacy pip install support; primary deps moved to pyproject.toml / uv.lock.
-moviepy==2.2.1
+moviepy>=2.2.1
+pillow>=12.3.0
 streamlit==1.59.1
 streamlit-tour==1.1.0
 edge_tts==7.3.1
