@@ -50,3 +50,10 @@ def test_input_control_characters_are_removed():
     brief = AffiliateBrief("Potes", "https://shopee.com.br/item", "Com tampa")
     draft = prepare_draft(brief, "Oferta\\x00 revisada")
     assert draft["script"] == "Oferta revisada"
+
+
+def test_long_product_description_keeps_cta_and_limit():
+    brief = AffiliateBrief("Potes", "https://shopee.com.br/item", "vedação " * 375)
+    draft = prepare_draft(brief)
+    assert len(draft["script"]) <= 1400
+    assert draft["script"].endswith('Comente "EU QUERO" para receber o link!')
