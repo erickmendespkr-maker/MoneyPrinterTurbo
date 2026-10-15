@@ -156,3 +156,8 @@ def test_long_caption_preserves_last_call_to_action(monkeypatch):
 def test_normalizer_rejects_invalid_target_dimensions(target):
     with pytest.raises(ValueError, match="Dimensões"):
         normalize_photo(b"placeholder", target=target)
+
+
+def test_caption_rejects_tiny_canvas():
+    with pytest.raises(ValueError, match="pequena demais"):
+        overlay_caption(Image.new("RGB", (64, 64), "white"), "Teste")
