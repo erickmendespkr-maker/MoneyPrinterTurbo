@@ -73,6 +73,7 @@ class LocalAuth:
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
             enforce_limit(db, "login", email, maximum=8, window=900)
+            db.commit()
             row = db.execute("SELECT id,salt,password_hash FROM affiliate_users WHERE email=?", (email,)).fetchone()
             # Perform expensive hashing even when email is unknown to reduce timing leakage.
             salt = row[1] if row else b"\x00" * 16
@@ -108,6 +109,7 @@ class LocalAuth:
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
             enforce_limit(db, "reset", normalized, maximum=3, window=3600)
+            db.commit()
             row = db.execute("SELECT id FROM affiliate_users WHERE email=?", (normalized,)).fetchone()
             if row is None:
                 return None
