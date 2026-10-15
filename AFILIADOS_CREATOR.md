@@ -45,3 +45,7 @@ A interface agora permite colar um URL HTTPS de loja suportada e sugerir um nome
 ## Identidade visual aprovada
 
 Marca: **Afiliados Creator**. Símbolo escolhido: monograma A dentro de C (conceito nº 3). A marca-d'água padrão dos vídeos e capas é **monocromática branca, com 80% de transparência (20% de opacidade, alpha 51/255)**, pequena, no canto inferior direito, acompanhada do nome Afiliados Creator. O código atual desenha uma aproximação vetorial desse conceito com Pillow; ainda será necessário produzir e revisar o ativo vetorial definitivo antes de afirmar correspondência pixel a pixel com a arte aprovada. A marca-d'água permanece obrigatória no protótipo para os planos Grátis e Pro; personalização do Creator exige autenticação e validação de plano no servidor antes de disponibilizar.
+
+## Interface com identidade AC
+
+A página Streamlit usa um cabeçalho azul/roxo com monograma A dentro de C e tipografia Manrope com fallback Arial. O desenho é implementado em SVG inline como aproximação visual do conceito aprovado. Ainda não há arquivo de logotipo final verificado, nem a interface completa do mockup de dashboard; a página permanece um protótipo funcional.
