@@ -200,3 +200,25 @@ def test_caption_segments_rejects_bad_count(count):
 def test_overlay_rejects_non_image(photo):
     with pytest.raises(ValueError, match="Imagem inválida para legenda"):
         overlay_caption(photo, "Teste")
+
+
+@pytest.mark.parametrize("variant", ["impacto", "beneficio", "curiosidade"])
+def test_video_variant_changes_caption_position(variant):
+    from app.afiliados.render import VIDEO_VARIANTS
+    assert variant in VIDEO_VARIANTS
+    photo = Image.new("RGB", (720, 1280), "white")
+    rendered = overlay_caption(photo, "Produto real", variant=variant)
+    assert rendered.size == photo.size
+    assert rendered.tobytes() != photo.tobytes()
+
+
+def test_video_variants_have_distinct_compositions():
+    photo = Image.new("RGB", (720, 1280), "white")
+    variants = [overlay_caption(photo, "Produto real", variant=v).tobytes()
+                for v in ("impacto", "beneficio", "curiosidade")]
+    assert len(set(variants)) == 3
+
+
+def test_video_variant_rejects_invalid_value_before_encoding():
+    with pytest.raises(ValueError, match="Variação"):
+        render_mp4([b"invalid"], 15, "Roteiro", variant="unknown")
