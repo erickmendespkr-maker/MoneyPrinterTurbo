@@ -1,0 +1,28 @@
+name: Afiliados security checks
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/afiliados]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  static-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check Python syntax
+        run: python -m compileall -q app webui main.py
+      - name: Check for committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Audit Python dependencies
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          pip-audit -r requirements.txt --progress-spinner off
