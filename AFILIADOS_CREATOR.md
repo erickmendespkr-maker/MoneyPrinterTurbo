@@ -37,3 +37,7 @@ O fluxo exige revisão manual das informações comerciais antes de renderizar. 
 ## Importação experimental de dados do produto
 
 A interface Streamlit permite enviar um arquivo HTML salvo da página do produto (até 2 MB). O extrator local lê JSON-LD do tipo Product e metadados OpenGraph, preenche nome e descrição para revisão e não faz solicitações de rede. A URL de imagem extraída é apenas informativa: imagens não são baixadas automaticamente. Ainda não há importação automática somente por link; sites podem bloquear acesso ou omitir metadados, e o usuário deve validar todas as informações.
+
+## Sugestão offline a partir do link
+
+A interface agora permite colar um URL HTTPS de loja suportada e sugerir um nome a partir do slug da URL. Isso não faz requisição HTTP nem comprova nome, preço ou atributos do produto. URLs com apenas identificadores podem não gerar sugestão. A importação completa somente por link permanece pendente de integração segura e autorização dos provedores.
