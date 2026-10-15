@@ -40,6 +40,8 @@ if submitted:
         st.session_state.pop("affiliate_generated_audio", None)
         st.session_state.pop("affiliate_voice_script", None)
         st.session_state.pop("affiliate_voice_type", None)
+        st.session_state.pop("affiliate_approval_key", None)
+        st.session_state.pop("affiliate_approved", None)
         st.session_state["affiliate_draft"] = draft
 
 draft = st.session_state.get("affiliate_draft")
@@ -89,7 +91,13 @@ if draft:
         render_digest.update(selected_audio)
         render_digest.update(selected_extension.encode("ascii"))
     current_render_key = render_digest.hexdigest()
-    approved = st.checkbox("Revisei o roteiro e confirmo que as informações do produto são verdadeiras.")
+    # An approval belongs to one specific script/product, never to a previous draft.
+    approval_payload = json.dumps(reviewed_draft, sort_keys=True, ensure_ascii=False)
+    approval_key = hashlib.sha256(approval_payload.encode("utf-8")).hexdigest()
+    if st.session_state.get("affiliate_approval_key") != approval_key:
+        st.session_state["affiliate_approved"] = False
+        st.session_state["affiliate_approval_key"] = approval_key
+    approved = st.checkbox("Revisei o roteiro e confirmo que as informações do produto são verdadeiras.", key="affiliate_approved")
     if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos or not edited_script.strip()):
         try:
             from app.afiliados.render import render_mp4
