@@ -25,4 +25,4 @@ This branch contains initial hardening only, **not** a completed security certif
 - PR #1 is a draft and must remain unmerged until CI, dependency review, and runtime testing pass.
 
 ## Security scan findings (15 October 2026)
-The initial dependency audit flagged python-multipart 0.0.27, litellm 1.86.2 and transitive Pillow 11.3.0. Requirements and pyproject pins were updated to python-multipart 0.0.31, litellm 1.96.2 and Pillow 12.3.0. The dependency lockfile and CI must be regenerated and verified before approval; do not assume these changes are compatible until CI succeeds.
+The initial dependency audit flagged python-multipart 0.0.27, litellm 1.86.2 and transitive Pillow 11.3.0. Requirements and pyproject pins were updated to python-multipart 0.0.31 and litellm 1.96.2. A proposed Pillow 12.3.0 pin was reverted after CI found a dependency conflict with MoviePy 2.2.1. **Pillow remediation remains blocked** until a compatible MoviePy/image stack is selected and tested. The dependency lockfile and CI must be regenerated and verified before approval.
