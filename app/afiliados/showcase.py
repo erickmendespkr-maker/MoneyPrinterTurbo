@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.afiliados.plans import PLANS
+from app.afiliados.pricing import plan_price, annual_savings, format_brl
 
 
 def public_demo_videos(root: Path, limit: int = 6) -> list[Path]:
@@ -23,6 +24,9 @@ def public_plan_comparison() -> dict[str, list]:
     plans = [PLANS[name] for name in ("gratis", "pro", "creator")]
     return {
         "Plano": ["Grátis", "Pro", "Creator"],
+        "Mensal": [format_brl(plan_price(name)) for name in ("gratis", "pro", "creator")],
+        "Anual (12 meses)": [format_brl(plan_price(name, "annual")) for name in ("gratis", "pro", "creator")],
+        "Economia anual": [format_brl(annual_savings(name)) for name in ("gratis", "pro", "creator")],
         "Vídeos por dia": [str(p.daily_video_limit) if p.daily_video_limit is not None else "Ilimitados (uso justo)" for p in plans],
         "Vídeos por anúncio": [p.videos_per_ad for p in plans],
         "Capas por anúncio": [p.thumbnails_per_ad for p in plans],
