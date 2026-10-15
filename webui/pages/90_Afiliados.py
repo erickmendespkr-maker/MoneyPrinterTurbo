@@ -16,10 +16,29 @@ st.set_page_config(page_title="Afiliados Creator", page_icon="🎬", layout="cen
 st.title("🎬 Afiliados Creator")
 st.caption("Roteiros e montagem de vídeo locais. Narração online opcional por Edge TTS, acionada somente por você.")
 st.info("Preencha os dados reais do produto. Um roteiro básico será criado localmente para sua revisão; o ChatGPT será conectado na etapa final.")
+with st.expander("Importar dados de HTML salvo"):
+    st.caption("Teste offline: envie o HTML da página para extrair nome e descrição. Nenhum site será acessado.")
+    uploaded_html = st.file_uploader("HTML do produto (máximo 2 MB)", type=["html", "htm"])
+    if st.button("Ler dados do produto", disabled=uploaded_html is None):
+        try:
+            from app.afiliados.metadata import extract_product_metadata
+            raw = uploaded_html.getvalue()
+            if len(raw) > 2_000_000:
+                raise ValueError("Arquivo acima de 2 MB")
+            info = extract_product_metadata(raw.decode("utf-8-sig", errors="replace"))
+            st.session_state["affiliate_imported"] = info
+            st.session_state["affiliate_product_name"] = info.get("name", "")
+            st.session_state["affiliate_product_features"] = info.get("description", "")
+        except ValueError as exc:
+            st.error(str(exc))
+    if st.session_state.get("affiliate_imported"):
+        st.json(st.session_state["affiliate_imported"])
+        st.caption("Confirme os dados extraídos. Fotos continuam sendo enviadas manualmente.")
+
 with st.form("affiliate_brief"):
-    product_name = st.text_input("Nome do produto", max_chars=140)
+    product_name = st.text_input("Nome do produto", max_chars=140, key="affiliate_product_name")
     product_url = st.text_input("Link HTTPS do produto (Shopee, Mercado Livre ou Amazon)")
-    features = st.text_area("Características verificadas do produto", max_chars=3000)
+    features = st.text_area("Características verificadas do produto", max_chars=3000, key="affiliate_product_features")
     price_note = st.text_input("Preço/observação opcional (não inventar)", max_chars=180)
     duration = st.selectbox("Duração alvo", (15, 20, 30))
     cta = st.selectbox("Chamada para ação", list(CTA), format_func=lambda x: CTA[x])
