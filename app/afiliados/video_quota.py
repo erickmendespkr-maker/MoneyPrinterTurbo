@@ -38,10 +38,11 @@ def _day() -> str:
 class FreeQuotaStatus:
     remaining_seconds: int
     in_progress: bool
+    attempt_retry_seconds: int = 0
 
     @property
     def can_generate(self) -> bool:
-        return not self.in_progress and self.remaining_seconds == 0
+        return not self.in_progress and self.remaining_seconds == 0 and self.attempt_retry_seconds == 0
 
 
 class VideoQuota:
@@ -103,7 +104,15 @@ class VideoQuota:
         pending = db.execute("""SELECT 1 FROM affiliate_video_quota
             WHERE owner_id=? AND status='reserved' LIMIT 1""", (owner_id,)).fetchone() is not None
         remaining = max(0, int(last_completed) + FREE_COOLDOWN_SECONDS - now) if last_completed is not None else 0
-        return FreeQuotaStatus(remaining_seconds=remaining, in_progress=pending)
+        attempt_row = db.execute("""SELECT COUNT(*), MIN(started_at)
+            FROM affiliate_free_render_attempts
+            WHERE owner_id=? AND started_at>?""",
+            (owner_id, now - FREE_ATTEMPT_WINDOW_SECONDS)).fetchone()
+        attempts, first_attempt = attempt_row
+        retry = (max(0, int(first_attempt) + FREE_ATTEMPT_WINDOW_SECONDS - now)
+                 if attempts >= FREE_MAX_RENDER_ATTEMPTS else 0)
+        return FreeQuotaStatus(remaining_seconds=remaining, in_progress=pending,
+                               attempt_retry_seconds=retry)
 
     def free_status(self, owner_id: str) -> FreeQuotaStatus:
         """Read status from persistent server state, never browser cookies."""
@@ -127,15 +136,14 @@ class VideoQuota:
             self._expire_stale(db, owner_id, now)
             if plan == "gratis":
                 status = self._free_state(db, owner_id, now)
-                if not status.can_generate:
+                if status.in_progress:
+                    raise PermissionError("Você já tem uma geração gratuita em andamento")
+                if status.remaining_seconds > 0:
                     raise PermissionError("Limite gratuito: aguarde 24 horas após a última geração concluída")
+                if status.attempt_retry_seconds > 0:
+                    raise PermissionError("Muitas tentativas de geração gratuita. Tente novamente mais tarde.")
                 db.execute("DELETE FROM affiliate_free_render_attempts WHERE started_at<=?",
                            (now - FREE_ATTEMPT_WINDOW_SECONDS,))
-                attempts = db.execute("""SELECT COUNT(*) FROM affiliate_free_render_attempts
-                    WHERE owner_id=? AND started_at>?""",
-                    (owner_id, now - FREE_ATTEMPT_WINDOW_SECONDS)).fetchone()[0]
-                if attempts >= FREE_MAX_RENDER_ATTEMPTS:
-                    raise PermissionError("Muitas tentativas de geração gratuita. Tente novamente mais tarde.")
                 db.execute("INSERT INTO affiliate_free_render_attempts VALUES (?,?)", (owner_id, now))
             else:
                 used = db.execute("""SELECT COUNT(*) FROM affiliate_video_quota
