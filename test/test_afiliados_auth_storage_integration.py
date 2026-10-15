@@ -44,3 +44,15 @@ def test_second_authenticated_account_cannot_open_first_account_projects(tmp_pat
         projects.save(second, _draft("Attack"), project_id)
     assert projects.delete(second, project_id) is False
     assert projects.load(first, project_id)["product"]["product_name"] == "Private"
+
+
+def test_expired_session_cannot_resolve(tmp_path, monkeypatch):
+    import app.afiliados.auth as auth_module
+    clock = [1_800_000_000]
+    monkeypatch.setattr(auth_module.time, "time", lambda: clock[0])
+    auth = LocalAuth(tmp_path / "auth.sqlite")
+    auth.register("expire@example.com", "strong password for tests")
+    token = auth.login("expire@example.com", "strong password for tests")
+    assert auth.resolve(token)
+    clock[0] += auth_module.SESSION_SECONDS + 1
+    assert auth.resolve(token) is None
