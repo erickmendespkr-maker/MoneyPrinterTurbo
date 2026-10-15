@@ -26,3 +26,11 @@ def test_watermark_can_be_disabled_via_zero_alpha():
 def test_watermark_rejects_invalid_alpha(alpha):
     with pytest.raises(ValueError):
         overlay_brand_watermark(Image.new("RGB", (720, 1280)), opacity=alpha)
+
+
+def test_monochrome_watermark_works_on_light_background():
+    original = Image.new("RGB", (720, 1280), (240, 240, 240))
+    marked = overlay_brand_watermark(original)
+    assert marked.size == original.size
+    assert marked.getpixel((0, 0)) == (240, 240, 240)
+    assert marked.tobytes() != original.tobytes()
