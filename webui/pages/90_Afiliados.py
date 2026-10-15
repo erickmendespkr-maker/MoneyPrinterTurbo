@@ -49,8 +49,26 @@ with st.sidebar:
 
 if selected_section == "Meus projetos":
     st.subheader("Meus projetos")
-    st.info("Nesta versão, o projeto é mantido durante a sessão. Exporte o JSON em Criar anúncio para salvá-lo. Histórico persistente ainda não implementado.")
+    st.info("Importe um JSON exportado anteriormente. Os projetos carregados ficam apenas nesta sessão; armazenamento permanente exige contas de usuário.")
+    imported_json = st.file_uploader("Importar projeto Afiliados Creator (JSON, até 16 KB)", type=["json"], key="affiliate_project_upload")
+    if st.button("Abrir projeto", disabled=imported_json is None):
+        try:
+            from app.afiliados.projects import import_project
+            imported_draft = import_project(imported_json.getvalue())
+            product = imported_draft["product"]
+            st.session_state["affiliate_draft"] = imported_draft
+            st.session_state["affiliate_product_name"] = product["product_name"]
+            st.session_state["affiliate_product_url"] = product["product_url"]
+            st.session_state["affiliate_product_features"] = product["features"]
+            for key in ("affiliate_review_script", "affiliate_mp4", "affiliate_render_key", "affiliate_generated_audio", "affiliate_approval_key"):
+                st.session_state.pop(key, None)
+            st.session_state["affiliate_approved"] = False
+            st.session_state["affiliate_section"] = "Criar anúncio"
+            st.rerun()
+        except ValueError as exc:
+            st.error(str(exc))
     if st.session_state.get("affiliate_draft"):
+        st.markdown("#### Projeto da sessão")
         st.json(st.session_state["affiliate_draft"]["product"])
 elif selected_section == "Biblioteca":
     st.subheader("Biblioteca")
