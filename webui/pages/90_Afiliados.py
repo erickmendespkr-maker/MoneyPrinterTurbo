@@ -11,8 +11,8 @@ if str(ROOT) not in sys.path:
 
 from app.afiliados.core import AffiliateBrief, CTA, prepare_draft  # noqa: E402
 
-st.set_page_config(page_title="Afiliados | MoneyPrinterTurbo", page_icon="🎬", layout="centered")
-st.title("🎬 MoneyPrinterTurbo Afiliados")
+st.set_page_config(page_title="Afiliados Creator", page_icon="🎬", layout="centered")
+st.title("🎬 Afiliados Creator")
 st.caption("Modo de preparação offline. Nenhuma API externa é acionada e nenhum crédito é consumido.")
 st.info("Preencha os dados reais do produto. O roteiro do ChatGPT será conectado na etapa final; por enquanto, você pode revisar um texto manualmente.")
 with st.form("affiliate_brief"):
@@ -72,13 +72,13 @@ if draft:
         st.download_button(
             "Baixar MP4",
             st.session_state["affiliate_mp4"],
-            file_name="reels-afiliados.mp4",
+            file_name="afiliados-creator.mp4",
             mime="video/mp4",
         )
     st.download_button(
         "Baixar projeto do anúncio (JSON)",
         data=json.dumps(draft, ensure_ascii=False, indent=2),
-        file_name="anuncio-afiliado.json",
+        file_name="afiliados-creator-projeto.json",
         mime="application/json",
     )
     with st.expander("Prompt preparado para ChatGPT"):
