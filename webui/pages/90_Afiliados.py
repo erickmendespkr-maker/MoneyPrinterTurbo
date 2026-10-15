@@ -1,4 +1,5 @@
 """Offline affiliate workflow. API credentials and paid generation intentionally absent."""
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -52,6 +53,16 @@ if draft:
         type=["mp3", "wav", "m4a"],
     )
     st.caption("As legendas são distribuídas entre as fotos, sem sincronização palavra por palavra.")
+    # Fingerprint the full rendering input so an old MP4 is never offered for new assets.
+    render_digest = hashlib.sha256()
+    render_digest.update(edited_script.strip().encode("utf-8"))
+    render_digest.update(str(draft["product"]["duration"]).encode("ascii"))
+    for photo in photos or []:
+        render_digest.update(photo.getvalue())
+    if narration:
+        render_digest.update(narration.getvalue())
+        render_digest.update(narration.name.encode("utf-8"))
+    current_render_key = render_digest.hexdigest()
     approved = st.checkbox("Revisei o roteiro e confirmo que as informações do produto são verdadeiras.")
     if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos or not edited_script.strip()):
         try:
@@ -65,11 +76,11 @@ if draft:
                     "." + narration.name.rsplit(".", 1)[-1].lower() if narration else ".mp3",
                 )
             st.session_state["affiliate_mp4"] = mp4
-            st.session_state["affiliate_rendered_script"] = edited_script.strip()
+            st.session_state["affiliate_render_key"] = current_render_key
             st.success("Vídeo montado localmente. Nenhuma API paga foi utilizada.")
         except Exception as exc:
             st.error(f"Não foi possível montar o vídeo: {type(exc).__name__}: {exc}")
-    if st.session_state.get("affiliate_mp4") and st.session_state.get("affiliate_rendered_script") != edited_script.strip():
+    if st.session_state.get("affiliate_mp4") and st.session_state.get("affiliate_render_key") != current_render_key:
         st.session_state.pop("affiliate_mp4", None)
     if st.session_state.get("affiliate_mp4"):
         st.video(st.session_state["affiliate_mp4"])
