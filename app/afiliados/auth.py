@@ -14,6 +14,7 @@ import sqlite3
 import time
 
 from app.afiliados.auth_limits import enforce_limit
+from app.afiliados.verification_policy import VERIFICATION_TOKEN_LIFETIME_SECONDS
 from pathlib import Path
 
 EMAIL = re.compile(r"^[^\s@]{1,64}@[^\s@]{1,190}$")
@@ -31,6 +32,14 @@ class LocalAuth:
         db.execute("""CREATE TABLE IF NOT EXISTS affiliate_users (
             id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL,
             salt BLOB NOT NULL, password_hash BLOB NOT NULL
+        )""")
+        columns = {row[1] for row in db.execute("PRAGMA table_info(affiliate_users)")}
+        if "verified_at" not in columns:
+            db.execute("ALTER TABLE affiliate_users ADD COLUMN verified_at INTEGER")
+        db.execute("""CREATE TABLE IF NOT EXISTS affiliate_email_verification (
+            token_hash TEXT PRIMARY KEY, owner_id TEXT NOT NULL,
+            expires_at INTEGER NOT NULL,
+            FOREIGN KEY(owner_id) REFERENCES affiliate_users(id)
         )""")
         db.execute("""CREATE TABLE IF NOT EXISTS affiliate_sessions (
             token_hash TEXT PRIMARY KEY, owner_id TEXT NOT NULL,
@@ -67,6 +76,55 @@ class LocalAuth:
         except sqlite3.IntegrityError as exc:
             raise ValueError("Não foi possível criar esta conta") from exc
         return owner_id
+
+    def create_verification_token(self, email: str) -> str | None:
+        """Issue a single-use confirmation link, rate-limited per address.
+
+        The raw token must only be delivered to that address by server-side mail.
+        """
+        if not isinstance(email, str) or len(email) > 254 or not EMAIL.fullmatch(email):
+            raise ValueError("E-mail inválido")
+        normalized = email.strip().casefold()
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            enforce_limit(db, "verify_email", normalized, maximum=3, window=3600)
+            db.commit()
+            row = db.execute("SELECT id,verified_at FROM affiliate_users WHERE email=?",
+                             (normalized,)).fetchone()
+            if row is None or row[1] is not None:
+                return None
+            owner_id = row[0]
+            db.execute("DELETE FROM affiliate_email_verification WHERE owner_id=?", (owner_id,))
+            token = secrets.token_urlsafe(32)
+            db.execute("INSERT INTO affiliate_email_verification VALUES (?,?,?)",
+                       (hashlib.sha256(token.encode()).hexdigest(), owner_id,
+                        int(time.time()) + VERIFICATION_TOKEN_LIFETIME_SECONDS))
+        return token
+
+    def verify_email(self, token: str) -> None:
+        """Confirm possession of the mailbox before allowing free generation."""
+        if not isinstance(token, str) or not 32 <= len(token) <= 256:
+            raise ValueError("Link de verificação inválido ou expirado")
+        digest = hashlib.sha256(token.encode()).hexdigest()
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("""SELECT owner_id FROM affiliate_email_verification
+                WHERE token_hash=? AND expires_at>?""",
+                (digest, int(time.time()))).fetchone()
+            if row is None:
+                raise ValueError("Link de verificação inválido ou expirado")
+            db.execute("UPDATE affiliate_users SET verified_at=? WHERE id=?",
+                       (int(time.time()), row[0]))
+            db.execute("DELETE FROM affiliate_email_verification WHERE owner_id=?", (row[0],))
+
+    def is_verified(self, owner_id: str) -> bool:
+        """Use only owner_id obtained by resolving a server-issued session."""
+        if not isinstance(owner_id, str) or not owner_id:
+            return False
+        with self._connect() as db:
+            row = db.execute("SELECT verified_at FROM affiliate_users WHERE id=?",
+                             (owner_id,)).fetchone()
+        return row is not None and row[0] is not None
 
     def login(self, email: str, password: str) -> str:
         email = self._credentials(email, password)
