@@ -87,6 +87,8 @@ if LOCAL_ACCOUNTS:
     ACTIVE_PLAN = subscriptions.get_plan(owner_id)
     ACTIVE_POLICY = get_plan_policy(ACTIVE_PLAN)
     store = AuthorizedProjects(ProjectStore(ROOT / "data" / "afiliados-projects.sqlite"), subscriptions)
+    from app.afiliados.video_quota import VideoQuota
+    video_quota = VideoQuota(ROOT / "data" / "afiliados-video-quota.sqlite")
     from app.afiliados.media_store import MediaStore
     media_store = MediaStore(ROOT / "data" / "afiliados-media.sqlite")
 
@@ -210,6 +212,10 @@ if selected_section == "Criar anúncio":
     with c3:
         st.metric("APIs pagas", "0")
     st.caption("Os indicadores acima descrevem recursos do protótipo, não produções realizadas. Capas e campanhas em lote são exclusivas do Creator.")
+    if LOCAL_ACCOUNTS:
+        used_today = video_quota.usage(owner_id)
+        daily_limit = ACTIVE_POLICY.daily_video_limit
+        st.caption(f"Vídeos concluídos hoje (São Paulo): {used_today} / {daily_limit if daily_limit is not None else chr(8734)}")
     with st.expander("Importar dados de HTML salvo"):
         st.caption("Teste offline: envie o HTML da página para extrair nome e descrição. Nenhum site será acessado.")
         uploaded_html = st.file_uploader("HTML do produto (máximo 2 MB)", type=["html", "htm"])
@@ -369,15 +375,23 @@ if selected_section == "Criar anúncio":
         if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos or len(photos) > 8 or not edited_script.strip()):
             try:
                 from app.afiliados.render import render_mp4
-                with st.spinner("Montando vídeo vertical com os arquivos enviados..."):
-                    mp4 = render_mp4(
+                reservation = video_quota.reserve(owner_id, ACTIVE_PLAN) if LOCAL_ACCOUNTS else None
+                try:
+                    with st.spinner("Montando vídeo vertical com os arquivos enviados..."):
+                        mp4 = render_mp4(
                         [photo.getvalue() for photo in photos],
                         draft["product"]["duration"],
                         edited_script.strip(),
                         selected_audio,
                         selected_extension,
                         variant=selected_variant,
-                    )
+                        )
+                    if reservation is not None:
+                        video_quota.complete(owner_id, reservation)
+                except Exception:
+                    if reservation is not None:
+                        video_quota.release(owner_id, reservation)
+                    raise
                 st.session_state["affiliate_mp4"] = mp4
                 st.session_state["affiliate_render_key"] = current_render_key + ":" + selected_variant
                 st.success("Vídeo montado localmente. Nenhuma API paga foi utilizada.")
@@ -404,8 +418,10 @@ if selected_section == "Criar anúncio":
         if st.button("Gerar pacote completo ZIP", disabled=ACTIVE_POLICY.videos_per_ad != 3 or not approved or not photos or len(photos) > 8 or not edited_script.strip()):
             try:
                 from app.afiliados.campaign import build_campaign
-                with st.spinner("Renderizando as três versões e as nove capas..."):
-                    package = build_campaign(
+                reservation = video_quota.reserve(owner_id, ACTIVE_PLAN, count=3) if LOCAL_ACCOUNTS else None
+                try:
+                    with st.spinner("Renderizando as três versões e as nove capas..."):
+                        package = build_campaign(
                         [photo.getvalue() for photo in photos],
                         draft["product"]["product_name"],
                         draft["product"]["duration"],
@@ -413,7 +429,13 @@ if selected_section == "Criar anúncio":
                         selected_audio,
                         selected_extension,
                         plan=ACTIVE_PLAN,
-                    )
+                        )
+                    if reservation is not None:
+                        video_quota.complete(owner_id, reservation)
+                except Exception:
+                    if reservation is not None:
+                        video_quota.release(owner_id, reservation)
+                    raise
                 st.session_state["affiliate_campaign_zip"] = package
                 st.session_state["affiliate_campaign_key"] = current_render_key
                 st.success("Pacote completo gerado: 3 vídeos e 9 capas.")
