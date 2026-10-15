@@ -49,3 +49,7 @@ Marca: **Afiliados Creator**. Símbolo escolhido: monograma A dentro de C (conce
 ## Interface com identidade AC
 
 A página Streamlit usa um cabeçalho azul/roxo com monograma A dentro de C e tipografia Manrope com fallback Arial. O desenho é implementado em SVG inline como aproximação visual do conceito aprovado. Ainda não há arquivo de logotipo final verificado, nem a interface completa do mockup de dashboard; a página permanece um protótipo funcional.
+
+## Dashboard inicial
+
+A interface Streamlit ganhou navegação lateral com Criar anúncio, Meus projetos, Biblioteca, Templates e Planos, além de um resumo do estúdio de criação. Somente a seção Criar anúncio executa o fluxo de geração existente. Meus projetos exibe o rascunho da sessão; Biblioteca e Templates descrevem recursos atuais; Planos informa políticas propostas, sem cobrar nem impor quotas. Não há persistência de histórico nem autenticação neste estágio. O layout não é ainda uma reprodução integral do mockup aprovado.
