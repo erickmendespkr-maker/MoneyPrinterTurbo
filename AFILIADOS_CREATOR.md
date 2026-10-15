@@ -73,3 +73,7 @@ A interface Streamlit agora integra o login experimental e o ProjectStore apenas
 ## Testes integrados de contas e projetos
 
 O arquivo test/test_afiliados_auth_storage_integration.py verifica login, ciclo de vida de projetos, isolamento entre contas e expiracao de sessao. A suite deve passar no CI antes de disponibilizar o recurso. Testes automatizados nao substituem a revisao de seguranca para uso publico.
+
+## Biblioteca local de midias
+
+Com AFILIADOS_LOCAL_ACCOUNTS=1, contas de teste podem salvar capas PNG e MP4 gerados, listar, visualizar, baixar e excluir os arquivos na aba Biblioteca. O banco SQLite fica em data/afiliados-media.sqlite e as consultas filtram o proprietario da sessao. O backend limita arquivos a 12 MB (PNG) ou 100 MB (MP4) e 100 arquivos por conta. A verificacao MP4 checa apenas a assinatura do container e nao valida codecs nem conteudo integral. Nao e armazenamento em nuvem nem recurso pronto para acesso publico; faltam isolamento de processamento, backup, limites totais de disco e testes de interface.
