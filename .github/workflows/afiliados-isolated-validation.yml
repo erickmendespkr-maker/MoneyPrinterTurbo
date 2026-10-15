@@ -37,7 +37,7 @@ jobs:
       - name: Verify patched Pillow installed
         run: python -c "from PIL import __version__; assert __version__ == '12.3.0', __version__"
       - name: Validate syntax
-        run: python -m compileall -q app/afiliados test/test_afiliados_core.py test/test_afiliados_render.py test/test_afiliados_voice.py
+        run: python -m compileall -q app/afiliados webui/pages/90_Afiliados.py test/test_afiliados_core.py test/test_afiliados_render.py test/test_afiliados_voice.py
       - name: Test affiliate modules with patched Pillow despite upstream MoviePy metadata cap
         run: python -m pytest -q test/test_afiliados_core.py test/test_afiliados_render.py test/test_afiliados_voice.py
       - name: Real MP4 encoding smoke test on Linux
@@ -45,8 +45,6 @@ jobs:
         env:
           AFILIADOS_MP4_SMOKE: '1'
         run: python -m pytest -q test/test_afiliados_render.py -k real_mp4_smoke
-      - name: Dependency vulnerability audit
-        if: always()
-        run: |
-          python -m pip install pip-audit
-          python -m pip_audit --progress-spinner off
+      # Dependency vulnerability scanning is performed against the complete uv.lock
+      # in afiliados-security.yml. The isolated test environment intentionally
+      # overrides MoviePy metadata and is not a deployable dependency set.
