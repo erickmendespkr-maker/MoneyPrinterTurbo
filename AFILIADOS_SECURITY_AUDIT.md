@@ -32,3 +32,8 @@ Data: 2026-10-15. Escopo: branch `feature/afiliados`, sem publicação nem crede
 - Inspeção direta de `uv.lock` na branch `feature/afiliados`: entrada `pillow` com versão **12.3.0** e manifesto de override `>=12.3.0,<13` presentes.
 - O bloqueio de **lock não atualizado** está encerrado. Permanecem pendentes auditoria de dependências com resultado verde e testes de renderização de MP4 com a combinação MoviePy/Pillow, inclusive no Windows.
 - A execução de CI não deve ser presumida como aprovada enquanto os jobs estiverem em fila.
+
+## Teste de execução local independente (2026-10-15)
+
+- Em ambiente Linux de validação, `moviepy 2.2.1` com `Pillow 12.3.0` gerou um MP4 real H.264, 720x1280, a partir de três imagens e legendas desenhadas via Pillow; arquivo de saída de 19.401 bytes. Também passou um teste simples com uma imagem.
+- **Limites:** não foi execução da suíte do repositório, nem teste com narração/Windows, nem auditoria de todas as dependências. O clone do GitHub falhou por ausência de DNS no ambiente de validação. Os metadados do MoviePy continuam declarando `pillow<12.0`, portanto o instalador pip legado continua inconsistente.
