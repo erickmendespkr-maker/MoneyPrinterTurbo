@@ -167,7 +167,8 @@ def test_free_failed_render_storm_limited_without_consuming_success_quota(tmp_pa
     for _ in range(module.FREE_MAX_RENDER_ATTEMPTS):
         reservation = quota.reserve(OWNER, "gratis")
         quota.release(OWNER, reservation)
-    assert quota.free_status(OWNER).can_generate
+    assert quota.free_status(OWNER).attempt_retry_seconds == module.FREE_ATTEMPT_WINDOW_SECONDS
+    assert not quota.free_status(OWNER).can_generate
     with pytest.raises(PermissionError, match="Muitas tentativas"):
         quota.reserve(OWNER, "gratis")
     clock[0] += module.FREE_ATTEMPT_WINDOW_SECONDS + 1
