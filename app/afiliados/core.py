@@ -35,7 +35,7 @@ def validate_product_url(value: str) -> str:
         host = parsed.hostname
     except ValueError as exc:
         raise ValueError("Link HTTPS inválido") from exc
-    if parsed.scheme != "https" or not host or parsed.username or parsed.password or parsed.fragment:
+    if parsed.scheme != "https" or not host or parsed.username or parsed.password or parsed.fragment or not parsed.path:
         raise ValueError("Use um link HTTPS válido, sem credenciais")
     # Reject encoded delimiters, trailing-dot host aliases and backslashes.
     # Product URLs are never fetched server-side, but exports should be canonical.
