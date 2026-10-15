@@ -39,9 +39,25 @@ with st.expander("Importar dados de HTML salvo"):
         st.json(st.session_state["affiliate_imported"])
         st.caption("Confirme os dados extraídos. Fotos continuam sendo enviadas manualmente.")
 
+with st.expander("Sugerir nome pelo link (sem acessar a loja)"):
+    hint_url = st.text_input("Cole o link HTTPS do produto", key="affiliate_hint_url")
+    if st.button("Analisar formato do link", disabled=not hint_url.strip()):
+        try:
+            from app.afiliados.link_hint import suggest_name_from_link
+            suggestion = suggest_name_from_link(hint_url)
+            st.session_state["affiliate_product_url"] = hint_url.strip()
+            if suggestion:
+                st.session_state["affiliate_product_name"] = suggestion
+                st.success("Nome sugerido a partir do endereço. Confirme o nome real do produto.")
+            else:
+                st.info("Este link não contém um nome identificável. Informe o nome manualmente.")
+        except ValueError as exc:
+            st.error(str(exc))
+    st.caption("Não consulta preço, descrição ou fotos. O link sozinho ainda não produz um anúncio completo.")
+
 with st.form("affiliate_brief"):
     product_name = st.text_input("Nome do produto", max_chars=140, key="affiliate_product_name")
-    product_url = st.text_input("Link HTTPS do produto (Shopee, Mercado Livre ou Amazon)")
+    product_url = st.text_input("Link HTTPS do produto (Shopee, Mercado Livre ou Amazon)", key="affiliate_product_url")
     features = st.text_area("Características verificadas do produto", max_chars=3000, key="affiliate_product_features")
     price_note = st.text_input("Preço/observação opcional (não inventar)", max_chars=180)
     duration = st.selectbox("Duração alvo", (15, 20, 30))
