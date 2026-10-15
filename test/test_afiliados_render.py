@@ -182,3 +182,9 @@ def test_renderer_rejects_bad_audio_magic_before_encoding(extension, payload, mo
 def test_caption_segments_rejects_non_text(script):
     with pytest.raises(ValueError, match="Roteiro inválido"):
         caption_segments(script, 2)
+
+
+@pytest.mark.parametrize("caption", [None, 10, ["teste"]])
+def test_overlay_rejects_non_string_caption(caption):
+    with pytest.raises(ValueError, match="Legenda inválida"):
+        overlay_caption(Image.new("RGB", (720, 1280), "white"), caption)
