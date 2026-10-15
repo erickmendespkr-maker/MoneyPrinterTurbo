@@ -66,11 +66,11 @@ class AffiliateBrief:
         if not _clean(self.features):
             raise ValueError("Informe características reais do produto")
         _clean(self.price_note, limit=180)
-        if self.duration not in DURATIONS:
+        if type(self.duration) is not int or self.duration not in DURATIONS:
             raise ValueError("Duração inválida")
-        if self.cta not in CTA:
+        if not isinstance(self.cta, str) or self.cta not in CTA:
             raise ValueError("Chamada para ação inválida")
-        if self.voice not in ("feminina", "masculina"):
+        if not isinstance(self.voice, str) or self.voice not in ("feminina", "masculina"):
             raise ValueError("Voz inválida")
         return self
 
