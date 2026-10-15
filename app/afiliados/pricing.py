@@ -3,8 +3,9 @@ from decimal import Decimal
 
 MONTHLY_BRL = {
     "gratis": Decimal("0.00"),
-    "pro": Decimal("39.90"),
-    "creator": Decimal("119.90"),
+    "pro": Decimal("69.90"),
+    "premium": Decimal("119.90"),
+    "creator": Decimal("199.90"),
 }
 ANNUAL_PAID_MONTHS = 10
 ANNUAL_ACCESS_MONTHS = 12
