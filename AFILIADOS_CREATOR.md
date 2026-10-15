@@ -109,3 +109,7 @@ VideoQuota usa SQLite com BEGIN IMMEDIATE para reservar capacidade antes de codi
 ## Monetizacao por anuncios do plano Gratis
 
 O plano Gratis exibira publicidade identificada na interface (painel de criacao e area apos conclusao do video). Pro e Creator nao exibem anuncios. Nao inserir publicidade nos arquivos MP4 nem exigir cliques ou visualizacao de anuncios para liberar geracao. O modulo ads.py valida publisher ID AdSense e IDs de slots configurados exclusivamente por variaveis de ambiente AFILIADOS_ADSENSE_PUBLISHER, AFILIADOS_ADSENSE_DASHBOARD_SLOT e AFILIADOS_ADSENSE_COMPLETE_SLOT. O dashboard atualmente mostra apenas espacos reservados; nao carrega scripts da rede nem gera receita. Para ativar anuncios reais sao necessarios dominio publicado, aprovacao do provedor, politica de privacidade, consentimento de cookies quando aplicavel e integracao de scripts compativel com Streamlit e CSP. Nunca publicar IDs de teste como se fossem contas aprovadas.
+
+## Link de patrocinador opcional (plano Gratis)
+
+Configure AFILIADOS_SPONSOR_URL com uma URL HTTPS de patrocinador previamente aprovada. O dashboard exibe um link rotulado 'Conhecer patrocinador' somente no Gratis, sem exigir acesso para gerar videos e sem interceptar botoes funcionais. Pro e Creator nao recebem esse link. Nao configurar links que redirecionem para publicidade enganosa nem assumir remuneracao por abertura: depende do contrato com a rede. Abertura automatica de popunder/clickunder nao foi implementada. Nenhum identificador ou URL de rede de anuncios foi inventado.
