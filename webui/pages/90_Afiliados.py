@@ -41,7 +41,9 @@ if submitted:
         st.session_state.pop("affiliate_voice_script", None)
         st.session_state.pop("affiliate_voice_type", None)
         st.session_state.pop("affiliate_approval_key", None)
-        st.session_state.pop("affiliate_approved", None)
+        # The checkbox widget may have been instantiated in a prior run;
+        # clear its value before the widget is created below.
+        st.session_state["affiliate_approved"] = False
         st.session_state["affiliate_draft"] = draft
 
 draft = st.session_state.get("affiliate_draft")
@@ -100,7 +102,9 @@ if draft:
         st.session_state["affiliate_approved"] = False
         st.session_state["affiliate_approval_key"] = approval_key
     approved = st.checkbox("Revisei o roteiro e confirmo que as informações do produto são verdadeiras.", key="affiliate_approved")
-    if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos or not edited_script.strip()):
+    if len(photos or []) > 8:
+        st.error("Envie no máximo 8 fotos do produto.")
+    if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos or len(photos) > 8 or not edited_script.strip()):
         try:
             from app.afiliados.render import render_mp4
             with st.spinner("Montando vídeo vertical com os arquivos enviados..."):
