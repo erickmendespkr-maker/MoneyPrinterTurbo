@@ -41,7 +41,7 @@ def test_overlay_caption_changes_pixels_without_resizing():
     assert original.getpixel((360, 1120)) == (255, 0, 0)
 
 
-@pytest.mark.parametrize("script", [None, "x" * 1401])
+@pytest.mark.parametrize("script", [None, "", "  ", "x" * 1401])
 def test_renderer_rejects_invalid_script(script):
     image = Image.new("RGB", (40, 40), "red")
     data = BytesIO()
