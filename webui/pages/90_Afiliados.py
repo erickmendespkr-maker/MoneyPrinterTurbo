@@ -34,6 +34,9 @@ st.markdown("""
 </svg><div><div class="ac-name">Afiliados <span>Creator</span></div>
 <div class="ac-tagline">Crie anúncios com fotos reais, vídeos e capas em poucos passos.</div></div></div></div>
 """, unsafe_allow_html=True)
+if st.session_state.pop("affiliate_open_imported", False):
+    st.session_state["affiliate_section"] = "Criar anúncio"
+
 with st.sidebar:
     st.markdown("### Afiliados Creator")
     st.caption("Painel de criação • protótipo")
@@ -63,7 +66,7 @@ if selected_section == "Meus projetos":
             for key in ("affiliate_review_script", "affiliate_mp4", "affiliate_render_key", "affiliate_generated_audio", "affiliate_approval_key"):
                 st.session_state.pop(key, None)
             st.session_state["affiliate_approved"] = False
-            st.session_state["affiliate_section"] = "Criar anúncio"
+            st.session_state["affiliate_open_imported"] = True
             st.rerun()
         except ValueError as exc:
             st.error(str(exc))
