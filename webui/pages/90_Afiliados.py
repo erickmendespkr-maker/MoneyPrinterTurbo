@@ -57,9 +57,27 @@ if LOCAL_ACCOUNTS:
     owner_id = auth.resolve(token) if token else None
     if owner_id is None:
         st.session_state.pop("affiliate_session_token", None)
-        st.subheader("Acesso local de testes")
+        st.subheader("Acessar Afiliados Creator")
         st.warning("Login experimental para uso local. Não publique esta opção na internet.")
-        login_tab, register_tab = st.tabs(("Entrar", "Criar conta de teste"))
+        reset_token = st.query_params.get("reset_token")
+        if reset_token:
+            st.subheader("Definir nova senha")
+            with st.form("affiliate_reset_password"):
+                new_password = st.text_input("Nova senha (mínimo 12 caracteres)", type="password")
+                confirm_new = st.text_input("Confirmar nova senha", type="password")
+                if st.form_submit_button("Redefinir senha"):
+                    if new_password != confirm_new:
+                        st.error("As senhas não coincidem.")
+                    else:
+                        try:
+                            auth.reset_password(reset_token, new_password)
+                            del st.query_params["reset_token"]
+                            st.success("Senha alterada. Entre com sua nova senha.")
+                            st.rerun()
+                        except ValueError as exc:
+                            st.error(str(exc))
+            st.stop()
+        login_tab, register_tab, forgot_tab = st.tabs(("Entrar", "Criar conta", "Esqueci minha senha"))
         with login_tab:
             with st.form("affiliate_login"):
                 email = st.text_input("E-mail", key="affiliate_login_email")
@@ -84,6 +102,21 @@ if LOCAL_ACCOUNTS:
                             st.success("Conta local criada. Entre na aba Entrar.")
                         except ValueError as exc:
                             st.error(str(exc))
+        with forgot_tab:
+            st.caption("Enviaremos um link de recuperação válido por 30 minutos.")
+            with st.form("affiliate_forgot_password"):
+                recovery_email = st.text_input("E-mail cadastrado", key="affiliate_recovery_email")
+                if st.form_submit_button("Enviar link de recuperação"):
+                    try:
+                        from app.afiliados.recovery_email import send_reset_email
+                        reset = auth.create_reset_token(recovery_email)
+                        if reset is not None:
+                            send_reset_email(recovery_email.strip().casefold(), reset)
+                        st.success("Se o e-mail estiver cadastrado, enviaremos as instruções de recuperação.")
+                    except ValueError:
+                        st.error("Informe um endereço de e-mail válido.")
+                    except (RuntimeError, OSError):
+                        st.error("O serviço de recuperação por e-mail está indisponível no momento.")
         st.stop()
     subscriptions = SubscriptionStore(ROOT / "data" / "afiliados-subscriptions.sqlite")
     ACTIVE_PLAN = subscriptions.get_plan(owner_id)
