@@ -94,7 +94,7 @@ def local_script(brief: AffiliateBrief) -> str:
     """Create a conservative offline draft using only user-supplied product facts."""
     brief.validate()
     name = _clean(brief.product_name, limit=140).rstrip(".!?")
-    facts = _clean(brief.features).replace("\\n", " ").strip().rstrip(".!?")
+    facts = " ".join(_clean(brief.features).split()).rstrip(".!?")
     # Avoid automatically incorporating price notes: they can become stale.
     return f"Conheça {name}. {facts}. {CTA[brief.cta]}"
 
