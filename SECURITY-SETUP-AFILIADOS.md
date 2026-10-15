@@ -13,3 +13,13 @@ This branch contains initial hardening only, **not** a completed security certif
 9. Do not connect OpenAI, Kling, Instagram or Shopee accounts until those reviews pass. Apply provider spending limits and use least-privilege credentials.
 
 **Compatibility note:** old clients relying on unauthenticated API access will stop working. Docker volume permissions may require adjustments on some hosts. Do not use a real API key for troubleshooting.
+
+## Affiliate mode implemented before API integration
+- `webui/pages/90_Afiliados.py`: product briefing, real-product facts, CTA and narration preferences, prompt preview and JSON download.
+- `app/afiliados/core.py`: validates supported HTTPS merchant links without fetching them, builds a factual OpenAI prompt and an approval-pending draft.
+- `app/afiliados/render.py`: locally renders a vertical photo slideshow (720×1280) with optional uploaded narration and MP4 export. This is a preliminary editor, not AI video generation.
+- `test/test_afiliados_core.py` and `test/test_afiliados_render.py`: input and media handling tests.
+- **Neither OpenAI nor Kling is called**; no API key is required for affiliate draft preparation.
+- This mode currently accepts Shopee, Mercado Livre and Amazon Brazil product links. Product information is entered manually; automatic product scraping is intentionally disabled.
+- The MP4 renderer does not yet burn subtitles or automatically narrate the script. It uses real uploaded images and optional uploaded audio.
+- PR #1 is a draft and must remain unmerged until CI, dependency review, and runtime testing pass.
