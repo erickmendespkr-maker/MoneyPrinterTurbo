@@ -15,8 +15,9 @@ class PlanPolicy:
 
 PLANS = {
     "gratis": PlanPolicy("gratis", 1, True, False, 1, 0, False),
-    "pro": PlanPolicy("pro", 5, True, False, 1, 0, True),
-    "creator": PlanPolicy("creator", None, False, True, 3, 9, True),
+    "pro": PlanPolicy("pro", 3, True, False, 1, 0, True),
+    "premium": PlanPolicy("premium", 5, True, False, 1, 3, True),
+    "creator": PlanPolicy("creator", 10, False, True, 3, 9, True),
 }
 
 
@@ -50,4 +51,4 @@ def require_feature(plan: str, feature: str) -> None:
     else:
         raise ValueError("Recurso inválido")
     if not allowed:
-        raise PermissionError("Recurso exclusivo do plano Creator" if feature != "projects" else "Salvar projetos exige plano Pro ou Creator")
+        raise PermissionError("Recurso não disponível neste plano")
