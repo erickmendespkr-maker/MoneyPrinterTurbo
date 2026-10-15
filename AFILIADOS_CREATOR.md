@@ -113,3 +113,7 @@ O plano Gratis exibira publicidade identificada na interface (painel de criacao 
 ## Link de patrocinador opcional (plano Gratis)
 
 Configure AFILIADOS_SPONSOR_URL com uma URL HTTPS de patrocinador previamente aprovada. O dashboard exibe um link rotulado 'Conhecer patrocinador' somente no Gratis, sem exigir acesso para gerar videos e sem interceptar botoes funcionais. Pro e Creator nao recebem esse link. Nao configurar links que redirecionem para publicidade enganosa nem assumir remuneracao por abertura: depende do contrato com a rede. Abertura automatica de popunder/clickunder nao foi implementada. Nenhum identificador ou URL de rede de anuncios foi inventado.
+
+## Cadastro, login e recuperacao de senha (prototipo local)
+
+Com AFILIADOS_LOCAL_ACCOUNTS=1, a interface oferece abas Entrar, Criar conta e Esqueci minha senha. O cadastro exige email, senha e confirmacao; login exige email e senha. Recuperacao gera token aleatorio de uso unico valido por 30 minutos, armazena apenas hash e revoga sessoes anteriores ao redefinir a senha. Configure no servidor AFILIADOS_SMTP_HOST, AFILIADOS_SMTP_USER, AFILIADOS_SMTP_PASSWORD, AFILIADOS_SMTP_FROM, AFILIADOS_SMTP_PORT=465 e AFILIADOS_PUBLIC_URL=https://dominio-aprovado para enviar emails por SMTP TLS. Sem configuracao SMTP, o email NAO sera enviado. Ainda faltam rate limiting de login/recuperacao, verificacao de email, protecao contra abuso, dominio publico HTTPS e auditoria de sessao/CSRF; nao habilite esse login experimental em producao.
