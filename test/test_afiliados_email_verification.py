@@ -39,14 +39,16 @@ def test_resending_invalidates_previous_token_and_throttles(tmp_path):
     auth = LocalAuth(tmp_path / "auth.sqlite")
     owner = auth.register("account@example.com", "a secure password here")
     old = auth.create_verification_token("account@example.com")
-    fresh = auth.create_verification_token("account@example.com")
+    auth.create_verification_token("account@example.com")
     assert not auth.is_verified(owner)
     with pytest.raises(ValueError, match="Link de verificação"):
         auth.verify_email(old)
-    assert auth.create_verification_token("account@example.com")
+    newest = auth.create_verification_token("account@example.com")
+    assert newest
     with pytest.raises(ValueError, match="Muitas tentativas"):
         auth.create_verification_token("account@example.com")
-    auth.verify_email(fresh) if False else None  # old links never regain validity
+    auth.verify_email(newest)
+    assert auth.is_verified(owner)
 
 
 def test_unknown_mailbox_never_receives_token(tmp_path):
