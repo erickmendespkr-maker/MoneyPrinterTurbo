@@ -15,6 +15,7 @@ from app.afiliados.core import AffiliateBrief, CTA, prepare_draft  # noqa: E402
 from app.afiliados.plans import get_plan_policy  # noqa: E402
 from app.afiliados.subscriptions import SubscriptionStore, AuthorizedProjects  # noqa: E402
 from app.afiliados.ads import ads_enabled, ad_placement, validated_adsense_config  # noqa: E402
+from app.afiliados.sponsor import sponsor_destination  # noqa: E402
 
 # Fail closed: subscription verification is not connected yet.
 # Never read a premium plan from session_state, query params or uploaded JSON.
@@ -211,6 +212,12 @@ AD_CONFIG = validated_adsense_config(
         "render_complete": os.environ.get("AFILIADOS_ADSENSE_COMPLETE_SLOT"),
     },
 )
+SPONSOR_URL = sponsor_destination(ACTIVE_PLAN, os.environ.get("AFILIADOS_SPONSOR_URL"))
+if SPONSOR_URL and selected_section == "Criar anúncio":
+    st.markdown("#### Patrocinador")
+    st.caption("Link publicitário opcional. Abrirá uma nova guia; não é necessário acessar para gerar vídeos.")
+    st.link_button("Conhecer patrocinador ↗", SPONSOR_URL)
+
 if ads_enabled(ACTIVE_PLAN) and selected_section == "Criar anúncio":
     st.caption("Publicidade · Plano Grátis")
     st.container(border=True).info(
