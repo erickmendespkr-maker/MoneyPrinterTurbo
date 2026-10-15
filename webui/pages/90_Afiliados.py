@@ -27,8 +27,10 @@ with st.expander("Importar dados de HTML salvo"):
                 raise ValueError("Arquivo acima de 2 MB")
             info = extract_product_metadata(raw.decode("utf-8-sig", errors="replace"))
             st.session_state["affiliate_imported"] = info
-            st.session_state["affiliate_product_name"] = info.get("name", "")
-            st.session_state["affiliate_product_features"] = info.get("description", "")
+            if info.get("name"):
+                st.session_state["affiliate_product_name"] = info["name"]
+            if info.get("description"):
+                st.session_state["affiliate_product_features"] = info["description"]
         except ValueError as exc:
             st.error(str(exc))
     if st.session_state.get("affiliate_imported"):
