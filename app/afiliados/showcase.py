@@ -21,15 +21,16 @@ def public_demo_videos(root: Path, limit: int = 6) -> list[Path]:
 
 
 def public_plan_comparison() -> dict[str, list]:
-    plans = [PLANS[name] for name in ("gratis", "pro", "creator")]
+    plans = [PLANS[name] for name in ("gratis", "pro", "premium", "creator")]
     return {
-        "Plano": ["Grátis", "Pro", "Creator"],
-        "Mensal": [format_brl(plan_price(name)) for name in ("gratis", "pro", "creator")],
-        "Anual (12 meses)": [format_brl(plan_price(name, "annual")) for name in ("gratis", "pro", "creator")],
-        "Economia anual": [format_brl(annual_savings(name)) for name in ("gratis", "pro", "creator")],
+        "Plano": ["Grátis", "Pro", "Premium", "Creator"],
+        "Mensal": [format_brl(plan_price(name)) for name in ("gratis", "pro", "premium", "creator")],
+        "Anual (12 meses)": [format_brl(plan_price(name, "annual")) for name in ("gratis", "pro", "premium", "creator")],
+        "Economia anual": [format_brl(annual_savings(name)) for name in ("gratis", "pro", "premium", "creator")],
         "Vídeos por dia": [str(p.daily_video_limit) if p.daily_video_limit is not None else "Ilimitados (uso justo)" for p in plans],
         "Vídeos por anúncio": [p.videos_per_ad for p in plans],
         "Capas por anúncio": [p.thumbnails_per_ad for p in plans],
         "Salvar projetos": ["Sim" if p.project_saving_allowed else "Não" for p in plans],
-        "Publicidade": ["Sim", "Não", "Não"],
+        "Publicidade": ["Sim", "Não", "Não", "Não"],
+        "Marca-d’água": ["Sim" if p.platform_watermark_required else "Não" for p in plans],
     }
