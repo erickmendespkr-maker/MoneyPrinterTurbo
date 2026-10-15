@@ -50,4 +50,4 @@ def require_feature(plan: str, feature: str) -> None:
     else:
         raise ValueError("Recurso inválido")
     if not allowed:
-        raise PermissionError("Recurso exclusivo do plano Creator")
+        raise PermissionError("Recurso não disponível no plano atual")
