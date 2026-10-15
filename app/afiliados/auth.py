@@ -126,6 +126,15 @@ class LocalAuth:
                              (owner_id,)).fetchone()
         return row is not None and row[0] is not None
 
+    def verified_account_email(self, owner_id: str) -> str | None:
+        """Server-only mailbox lookup for resend; never use a client owner ID."""
+        if not isinstance(owner_id, str) or not owner_id:
+            return None
+        with self._connect() as db:
+            row = db.execute("SELECT email FROM affiliate_users WHERE id=?",
+                             (owner_id,)).fetchone()
+        return row[0] if row else None
+
     def login(self, email: str, password: str) -> str:
         email = self._credentials(email, password)
         with self._connect() as db:
