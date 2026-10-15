@@ -19,3 +19,19 @@ Este fork ainda não foi aprovado para uso com credenciais reais.
 - Existem controles de caminhos e verificação TLS em partes do código.
 
 Estes achados não comprovam malware nem substituem análise dinâmica ou varredura completa de dependências.
+
+## Correções publicadas nesta branch
+- API exige chave não vazia e falha ao iniciar sem ela; validação de requisições falha fechada.
+- Exemplo de configuração limita o host da API a 127.0.0.1; Docker mantém escuta interna compatível com publicação local.
+- Docker executa como usuário não privilegiado, com no-new-privileges e capacidades removidas.
+- GitHub Actions ganhou análise de segredos, sintaxe Python e auditoria de dependências.
+- Foram adicionados testes básicos de autenticação.
+
+## Pendências antes de conectar contas reais
+- Confirmar que os checks do GitHub Actions foram executados e passaram (nenhuma execução foi confirmada nesta revisão).
+- Executar testes funcionais da API, WebUI, uploads, Docker e geração de vídeo.
+- Inspecionar todos os downloads e comunicações externas; revisar dependências transitivas e ações de terceiros.
+- A WebUI Streamlit não utiliza a autenticação da API; deve continuar restrita ao loopback.
+- O Docker Compose ainda monta o diretório do projeto; reduzir a montagem após testar compatibilidade.
+- Revisar possíveis problemas de SSRF, vazamento em logs e upload de arquivos.
+- Não há certificação de ausência de malware: a análise continua parcial.
