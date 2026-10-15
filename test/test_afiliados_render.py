@@ -67,3 +67,15 @@ def test_renderer_rejects_bad_argument_types(images, duration):
 def test_normalizer_rejects_non_bytes():
     with pytest.raises(ValueError):
         normalize_photo("not bytes")
+
+
+def test_caption_with_unbroken_product_identifier_keeps_canvas_dimensions():
+    photo = Image.new("RGB", (720, 1280), "white")
+    output = overlay_caption(photo, "A" * 250)
+    assert output.size == photo.size
+    assert output.getpixel((360, 1100)) != (255, 255, 255)
+
+
+def test_caption_with_many_words_does_not_crash():
+    photo = Image.new("RGB", (720, 1280), "white")
+    assert overlay_caption(photo, "produto " * 400).size == (720, 1280)
