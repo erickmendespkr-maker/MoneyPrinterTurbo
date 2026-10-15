@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
 from app.afiliados.core import AffiliateBrief, CTA, prepare_draft  # noqa: E402
 from app.afiliados.plans import get_plan_policy  # noqa: E402
 from app.afiliados.subscriptions import SubscriptionStore, AuthorizedProjects  # noqa: E402
+from app.afiliados.ads import ads_enabled, ad_placement, validated_adsense_config  # noqa: E402
 
 # Fail closed: subscription verification is not connected yet.
 # Never read a premium plan from session_state, query params or uploaded JSON.
@@ -199,6 +200,24 @@ elif selected_section == "Planos":
     st.subheader("Planos previstos")
     st.table({"Plano": ["Grátis", "Pro", "Creator"], "Vídeos concluídos por dia": ["1", "5", "Ilimitados (uso justo)"], "Marca-d'água": ["Obrigatória", "Obrigatória", "Opcional / personalizada"]})
     st.warning("Regras informativas: autenticação, cobrança e limites no servidor ainda não estão implementados.")
+
+# No network script is injected until the publisher config and deployment are approved.
+# Streamlit embeds ad scripts inconsistently; actual serving needs a production
+# integration with consent, CSP and the advertising provider's requirements.
+AD_CONFIG = validated_adsense_config(
+    os.environ.get("AFILIADOS_ADSENSE_PUBLISHER"),
+    {
+        "dashboard": os.environ.get("AFILIADOS_ADSENSE_DASHBOARD_SLOT"),
+        "render_complete": os.environ.get("AFILIADOS_ADSENSE_COMPLETE_SLOT"),
+    },
+)
+if ads_enabled(ACTIVE_PLAN) and selected_section == "Criar anúncio":
+    st.caption("Publicidade · Plano Grátis")
+    st.container(border=True).info(
+        "Espaço reservado para anúncio patrocinado. "
+        + ("Integração publicitária aguardando aprovação do site." if AD_CONFIG else
+           "Publicidade ainda não ativada.")
+    )
 
 if selected_section == "Criar anúncio":
     st.caption("Roteiros e montagem de vídeo locais. Narração online opcional por Edge TTS, acionada somente por você.")
@@ -395,6 +414,8 @@ if selected_section == "Criar anúncio":
                 st.session_state["affiliate_mp4"] = mp4
                 st.session_state["affiliate_render_key"] = current_render_key + ":" + selected_variant
                 st.success("Vídeo montado localmente. Nenhuma API paga foi utilizada.")
+                if ads_enabled(ACTIVE_PLAN):
+                    st.caption("Publicidade · Espaço reservado após a conclusão do vídeo")
             except Exception as exc:
                 st.error(f"Não foi possível montar o vídeo: {type(exc).__name__}: {exc}")
         if st.session_state.get("affiliate_mp4") and st.session_state.get("affiliate_render_key") != current_render_key + ":" + selected_variant:
