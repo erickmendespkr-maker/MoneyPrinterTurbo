@@ -20,6 +20,7 @@ from app.afiliados.storage import _owner
 MAX_PNG_BYTES = 12 * 1024 * 1024
 MAX_MP4_BYTES = 100 * 1024 * 1024
 MAX_FILES_PER_OWNER = 100
+MAX_TOTAL_BYTES_PER_OWNER = 512 * 1024 * 1024
 ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
 KINDS = {"thumbnail": "image/png", "video": "video/mp4"}
 
@@ -60,15 +61,29 @@ class MediaStore:
             sha256 TEXT NOT NULL, payload BLOB NOT NULL, created_at TEXT NOT NULL
         )""")
         db.execute("CREATE INDEX IF NOT EXISTS idx_media_owner ON affiliate_media(owner_id, created_at)")
+        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_media_dedupe ON affiliate_media(owner_id, kind, sha256)")
         return db
 
     def save(self, owner_id: str, kind: str, data: bytes) -> str:
         owner_id = _owner(owner_id)
         digest = _validate(kind, data)
         with self._connect() as db:
-            count = db.execute("SELECT COUNT(*) FROM affiliate_media WHERE owner_id=?", (owner_id,)).fetchone()[0]
+            # Serialize quota decisions across simultaneous connections.
+            db.execute("BEGIN IMMEDIATE")
+            existing = db.execute(
+                "SELECT id FROM affiliate_media WHERE owner_id=? AND kind=? AND sha256=?",
+                (owner_id, kind, digest),
+            ).fetchone()
+            if existing:
+                return existing[0]
+            count, used = db.execute(
+                "SELECT COUNT(*), COALESCE(SUM(length(payload)), 0) FROM affiliate_media WHERE owner_id=?",
+                (owner_id,),
+            ).fetchone()
             if count >= MAX_FILES_PER_OWNER:
                 raise ValueError("Limite de arquivos atingido")
+            if used + len(data) > MAX_TOTAL_BYTES_PER_OWNER:
+                raise ValueError("Limite de armazenamento da conta atingido")
             media_id = uuid4().hex
             db.execute("INSERT INTO affiliate_media VALUES (?,?,?,?,?,?)", (
                 media_id, owner_id, kind, digest, data, datetime.now(timezone.utc).isoformat()
