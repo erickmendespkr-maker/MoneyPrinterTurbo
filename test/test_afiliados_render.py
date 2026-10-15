@@ -39,3 +39,20 @@ def test_overlay_caption_changes_pixels_without_resizing():
     assert captioned.size == original.size
     assert captioned.getpixel((360, 1120)) != original.getpixel((360, 1120))
     assert original.getpixel((360, 1120)) == (255, 0, 0)
+
+
+@pytest.mark.parametrize("script", [None, "x" * 1401])
+def test_renderer_rejects_invalid_script(script):
+    image = Image.new("RGB", (40, 40), "red")
+    data = BytesIO()
+    image.save(data, format="PNG")
+    with pytest.raises(ValueError):
+        render_mp4([data.getvalue()], 15, script)
+
+
+def test_renderer_rejects_invalid_audio_without_invoking_encoder():
+    image = Image.new("RGB", (40, 40), "red")
+    data = BytesIO()
+    image.save(data, format="PNG")
+    with pytest.raises(ValueError):
+        render_mp4([data.getvalue()], 15, "Teste", audio=b"")
