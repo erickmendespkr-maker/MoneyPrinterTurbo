@@ -77,6 +77,8 @@ if LOCAL_ACCOUNTS:
                             st.error(str(exc))
         st.stop()
     store = ProjectStore(ROOT / "data" / "afiliados-projects.sqlite")
+    from app.afiliados.media_store import MediaStore
+    media_store = MediaStore(ROOT / "data" / "afiliados-media.sqlite")
 
 if st.session_state.pop("affiliate_open_imported", False):
     st.session_state["affiliate_section"] = "Criar anúncio"
@@ -154,7 +156,25 @@ if selected_section == "Meus projetos":
         st.json(st.session_state["affiliate_draft"]["product"])
 elif selected_section == "Biblioteca":
     st.subheader("Biblioteca")
-    st.info("Os arquivos gerados ficam disponíveis na seção Criar anúncio durante esta sessão. Uma biblioteca permanente será adicionada depois.")
+    if store is None:
+        st.info("A biblioteca local exige uma conta de teste. Ative AFILIADOS_LOCAL_ACCOUNTS=1 somente no ambiente local.")
+    else:
+        st.caption("Arquivos gerados e salvos nesta instalação local. Não é armazenamento em nuvem.")
+        files = media_store.list(owner_id)
+        if not files:
+            st.info("Nenhuma mídia salva nesta conta.")
+        for item in files:
+            with st.expander(("Capa PNG" if item["kind"] == "thumbnail" else "Vídeo MP4") + " · " + item["created_at"][:16]):
+                kind, content = media_store.load(owner_id, item["id"])
+                st.caption(f"{item['size'] / 1024 / 1024:.2f} MB")
+                if kind == "thumbnail":
+                    st.image(content, width=240)
+                else:
+                    st.video(content)
+                st.download_button("Baixar arquivo", content, file_name=item["id"] + (".png" if kind == "thumbnail" else ".mp4"), mime="image/png" if kind == "thumbnail" else "video/mp4", key="media-download-" + item["id"])
+                if st.button("Excluir arquivo", key="media-delete-" + item["id"]):
+                    media_store.delete(owner_id, item["id"])
+                    st.rerun()
 elif selected_section == "Templates":
     st.subheader("Templates")
     st.write("Capas disponíveis: Impacto, Benefício e Curiosidade. A geração de vídeo ainda usa o modelo de apresentação com fotos.")
@@ -304,6 +324,12 @@ if selected_section == "Criar anúncio":
                 for column, (style, cover) in zip(columns, covers.items()):
                     with column:
                         st.image(cover, caption=style.title(), use_container_width=True)
+                        if store is not None and st.button(f"Salvar capa {style} na biblioteca", key=f"save-cover-{current_render_key}-{style}"):
+                            try:
+                                media_store.save(owner_id, "thumbnail", cover)
+                                st.success("Capa salva na biblioteca local.")
+                            except ValueError as exc:
+                                st.error(str(exc))
                         st.download_button(
                             f"Baixar {style}", cover,
                             file_name=f"afiliados-{style}.png", mime="image/png",
@@ -340,6 +366,12 @@ if selected_section == "Criar anúncio":
             st.session_state.pop("affiliate_mp4", None)
         if st.session_state.get("affiliate_mp4"):
             st.video(st.session_state["affiliate_mp4"])
+            if store is not None and st.button("Salvar MP4 na biblioteca local"):
+                try:
+                    media_store.save(owner_id, "video", st.session_state["affiliate_mp4"])
+                    st.success("Vídeo salvo na biblioteca local.")
+                except ValueError as exc:
+                    st.error(str(exc))
             st.download_button(
                 "Baixar MP4",
                 st.session_state["affiliate_mp4"],
