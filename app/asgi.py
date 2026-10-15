@@ -27,9 +27,7 @@ async def application_lifespan(_: FastAPI):
 
     configured_api_key = config.app.get("api_key", "")
     if configured_api_key in (None, ""):
-        logger.warning(
-            "API key authentication is disabled; keep the API on a trusted network"
-        )
+        raise RuntimeError("API authentication is required: set app.api_key in config.toml before starting the API")
     elif isinstance(configured_api_key, str):
         # 只记录保护范围，不得输出 Key、长度或摘要，避免凭据进入日志系统。
         logger.info("API key authentication is enabled for /api/v1 and /tasks")
