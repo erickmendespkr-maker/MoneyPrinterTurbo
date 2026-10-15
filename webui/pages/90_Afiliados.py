@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.afiliados.core import AffiliateBrief, CTA, make_openai_prompt, prepare_draft
+from app.afiliados.core import AffiliateBrief, CTA, prepare_draft
 
 st.set_page_config(page_title="Afiliados | MoneyPrinterTurbo", page_icon="🎬", layout="centered")
 st.title("🎬 MoneyPrinterTurbo Afiliados")
