@@ -18,7 +18,7 @@ async def synthesize_voice(script: str, voice: str = "feminina") -> bytes:
     """Generate MP3 narration, using only an allowlisted voice and bounded text."""
     if not isinstance(script, str) or not script.strip() or len(script) > MAX_SCRIPT_LENGTH:
         raise ValueError("Roteiro inválido para narração")
-    if voice not in VOICE_IDS:
+    if not isinstance(voice, str) or voice not in VOICE_IDS:
         raise ValueError("Voz não suportada")
     import edge_tts
 
