@@ -112,9 +112,10 @@ with st.sidebar:
 
 if selected_section == "Meus projetos":
     st.subheader("Meus projetos")
-    st.info("Importe um JSON exportado anteriormente. Os projetos carregados ficam apenas nesta sessão; armazenamento permanente exige contas de usuário.")
-    imported_json = st.file_uploader("Importar projeto Afiliados Creator (JSON, até 16 KB)", type=["json"], key="affiliate_project_upload")
-    if st.button("Abrir projeto", disabled=imported_json is None):
+    st.info("Salvar e reabrir projetos é exclusivo dos planos Pro e Creator.")
+    imported_json = (st.file_uploader("Importar projeto Afiliados Creator (JSON, até 16 KB)", type=["json"], key="affiliate_project_upload")
+                     if ACTIVE_POLICY.project_saving_allowed else None)
+    if ACTIVE_POLICY.project_saving_allowed and st.button("Abrir projeto", disabled=imported_json is None):
         try:
             from app.afiliados.projects import import_project
             imported_draft = import_project(imported_json.getvalue())
@@ -131,7 +132,7 @@ if selected_section == "Meus projetos":
             st.rerun()
         except ValueError as exc:
             st.error(str(exc))
-    if store is not None:
+    if store is not None and ACTIVE_POLICY.project_saving_allowed:
         st.markdown("#### Projetos salvos na conta local")
         saved_projects = store.list(owner_id)
         if saved_projects:
@@ -157,7 +158,7 @@ if selected_section == "Meus projetos":
                 st.rerun()
         else:
             st.caption("Nenhum projeto salvo nesta conta.")
-    if st.session_state.get("affiliate_draft"):
+    if ACTIVE_POLICY.project_saving_allowed and st.session_state.get("affiliate_draft"):
         st.markdown("#### Projeto da sessão")
         st.json(st.session_state["affiliate_draft"]["product"])
 elif selected_section == "Biblioteca":
@@ -426,7 +427,7 @@ if selected_section == "Criar anúncio":
                 mime="application/zip",
                 key="affiliate_campaign_download",
             )
-        if store is not None:
+        if store is not None and ACTIVE_POLICY.project_saving_allowed:
             if st.button("Salvar projeto na minha conta local"):
                 try:
                     project_id = store.save(owner_id, reviewed_draft, st.session_state.get("affiliate_loaded_project_id"))
@@ -434,11 +435,12 @@ if selected_section == "Criar anúncio":
                     st.success("Projeto salvo no banco local desta conta.")
                 except ValueError as exc:
                     st.error(str(exc))
-        st.download_button(
-            "Baixar projeto do anúncio (JSON)",
+        if ACTIVE_POLICY.project_saving_allowed:
+            st.download_button(
+                "Baixar projeto do anúncio (JSON)",
             data=json.dumps(reviewed_draft, ensure_ascii=False, indent=2),
             file_name="afiliados-creator-projeto.json",
-            mime="application/json",
-        )
+                mime="application/json",
+            )
         with st.expander("Prompt preparado para ChatGPT"):
             st.code(draft["prompt"]["system"] + "\n\n" + draft["prompt"]["user"], language="text")
