@@ -161,6 +161,10 @@ elif selected_section == "Biblioteca":
     else:
         st.caption("Arquivos gerados e salvos nesta instalação local. Não é armazenamento em nuvem.")
         files = media_store.list(owner_id)
+        from app.afiliados.media_store import MAX_TOTAL_BYTES_PER_OWNER
+        used_bytes = sum(item["size"] for item in files)
+        st.progress(min(used_bytes / MAX_TOTAL_BYTES_PER_OWNER, 1.0), text=f"Armazenamento local: {used_bytes / 1024 / 1024:.1f} de {MAX_TOTAL_BYTES_PER_OWNER / 1024 / 1024:.0f} MB")
+        st.caption(f"{len(files)} de 100 arquivos nesta conta.")
         if not files:
             st.info("Nenhuma mídia salva nesta conta.")
         for item in files:
