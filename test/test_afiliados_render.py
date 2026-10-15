@@ -3,7 +3,7 @@ from io import BytesIO
 import pytest
 from PIL import Image
 
-from app.afiliados.render import normalize_photo, render_mp4
+from app.afiliados.render import caption_segments, normalize_photo, overlay_caption, render_mp4
 
 
 def test_photo_is_letterboxed_without_distortion():
@@ -25,3 +25,17 @@ def test_invalid_image_rejected(payload):
 def test_renderer_rejects_missing_images():
     with pytest.raises(ValueError):
         render_mp4([], 15, "")
+
+
+def test_caption_segments_preserve_words():
+    script = "Potes de cozinha com tampa e vedação"
+    captions = caption_segments(script, 3)
+    assert " ".join(captions) == script
+
+
+def test_overlay_caption_changes_pixels_without_resizing():
+    original = Image.new("RGB", (720, 1280), "red")
+    captioned = overlay_caption(original, "Produto real e prático")
+    assert captioned.size == original.size
+    assert captioned.getpixel((30, 1150)) != original.getpixel((30, 1150))
+    assert original.getpixel((30, 1150)) == (255, 0, 0)
