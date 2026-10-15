@@ -37,6 +37,8 @@ if submitted:
         st.session_state.pop("affiliate_mp4", None)
         st.session_state.pop("affiliate_review_script", None)
         st.session_state.pop("affiliate_render_key", None)
+        st.session_state.pop("affiliate_generated_audio", None)
+        st.session_state.pop("affiliate_voice_script", None)
         st.session_state["affiliate_draft"] = draft
 
 draft = st.session_state.get("affiliate_draft")
@@ -55,15 +57,36 @@ if draft:
         type=["mp3", "wav", "m4a"],
     )
     st.caption("As legendas são distribuídas entre as fotos, sem sincronização palavra por palavra.")
+    st.caption("Narração automática opcional via Edge TTS: requer internet e envia o roteiro ao serviço externo.")
+    if st.button("Gerar narração em português brasileiro", disabled=not edited_script.strip()):
+        try:
+            from app.afiliados.voice import generate_voice
+            with st.spinner("Gerando narração..."):
+                generated = generate_voice(edited_script.strip(), draft["product"]["voice"])
+            st.session_state["affiliate_generated_audio"] = generated
+            st.session_state["affiliate_voice_script"] = edited_script.strip()
+            st.session_state["affiliate_voice_type"] = draft["product"]["voice"]
+        except Exception as exc:
+            st.error(f"Falha na narração: {type(exc).__name__}: {exc}")
+    if (st.session_state.get("affiliate_voice_script") != edited_script.strip()
+            or st.session_state.get("affiliate_voice_type") != draft["product"]["voice"]):
+        st.session_state.pop("affiliate_generated_audio", None)
+    generated_audio = st.session_state.get("affiliate_generated_audio")
+    if generated_audio:
+        st.audio(generated_audio, format="audio/mp3")
+        st.download_button("Baixar narração MP3", generated_audio, file_name="afiliados-creator-narracao.mp3", mime="audio/mpeg")
+    selected_audio = narration.getvalue() if narration else generated_audio
+    selected_extension = ("." + narration.name.rsplit(".", 1)[-1].lower()) if narration else ".mp3"
+
     # Fingerprint the full rendering input so an old MP4 is never offered for new assets.
     render_digest = hashlib.sha256()
     render_digest.update(edited_script.strip().encode("utf-8"))
     render_digest.update(str(draft["product"]["duration"]).encode("ascii"))
     for photo in photos or []:
         render_digest.update(photo.getvalue())
-    if narration:
-        render_digest.update(narration.getvalue())
-        render_digest.update(narration.name.encode("utf-8"))
+    if selected_audio:
+        render_digest.update(selected_audio)
+        render_digest.update(selected_extension.encode("ascii"))
     current_render_key = render_digest.hexdigest()
     approved = st.checkbox("Revisei o roteiro e confirmo que as informações do produto são verdadeiras.")
     if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos or not edited_script.strip()):
@@ -74,8 +97,8 @@ if draft:
                     [photo.getvalue() for photo in photos],
                     draft["product"]["duration"],
                     edited_script.strip(),
-                    narration.getvalue() if narration else None,
-                    "." + narration.name.rsplit(".", 1)[-1].lower() if narration else ".mp3",
+                    selected_audio,
+                    selected_extension,
                 )
             st.session_state["affiliate_mp4"] = mp4
             st.session_state["affiliate_render_key"] = current_render_key
