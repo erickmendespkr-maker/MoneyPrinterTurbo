@@ -18,3 +18,9 @@ def test_voice_rejects_invalid_voice():
 def test_voice_allowlist():
     assert VOICE_IDS["feminina"].startswith("pt-BR-")
     assert VOICE_IDS["masculina"].startswith("pt-BR-")
+
+
+def test_voice_rejects_non_string_selector():
+    import asyncio
+    with pytest.raises(ValueError):
+        asyncio.run(synthesize_voice("Texto", []))
