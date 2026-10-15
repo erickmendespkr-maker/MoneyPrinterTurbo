@@ -28,12 +28,11 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install minimal isolated dependencies
-        run: python -m pip install "pytest>=8,<10" "moviepy==2.2.1" "pillow>=11.3,<12" "edge-tts==7.3.1"
-      - name: Check dependency consistency
-        run: python -m pip check
+        run: python -m pip install "pytest>=8,<10" "moviepy==2.2.1" "edge-tts==7.3.1"\n          python -m pip install --no-deps "pillow==12.3.0"
+      - name: Verify patched Pillow installed\n        run: python -c "from PIL import __version__; assert __version__ == '12.3.0', __version__"
       - name: Validate syntax
         run: python -m compileall -q app/afiliados test/test_afiliados_core.py test/test_afiliados_render.py test/test_afiliados_voice.py
-      - name: Test affiliate modules without paid APIs
+      - name: Test affiliate modules with patched Pillow despite upstream MoviePy metadata cap
         run: python -m pytest -q test/test_afiliados_core.py test/test_afiliados_render.py test/test_afiliados_voice.py
       - name: Dependency vulnerability audit
         if: always()
