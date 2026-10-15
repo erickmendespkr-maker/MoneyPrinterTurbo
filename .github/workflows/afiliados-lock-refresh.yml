@@ -20,7 +20,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Resolve and update lock
         run: |
-          uv lock --upgrade-package python-multipart --upgrade-package litellm --upgrade-package pillow --upgrade-package moviepy
+          uv lock --upgrade-package python-multipart --upgrade-package litellm --upgrade-package pillow --upgrade-package moviepy --upgrade-package anyio --upgrade-package cryptography --upgrade-package fsspec --upgrade-package gitpython --upgrade-package multidict --upgrade-package setuptools --upgrade-package starlette --upgrade-package urllib3
           uv export --locked --no-dev --no-emit-project --no-hashes --output-file /tmp/afiliados-lock-check.txt
           grep -E "^pillow==12\\.3\\.0$" /tmp/afiliados-lock-check.txt
       - name: Commit resolved lock only
