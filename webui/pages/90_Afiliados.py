@@ -80,6 +80,15 @@ if LOCAL_ACCOUNTS:
     from app.afiliados.storage import ProjectStore
 
     auth = LocalAuth(ROOT / "data" / "afiliados-auth.sqlite")
+    verify_token = st.query_params.get("verify_token")
+    if verify_token:
+        try:
+            auth.verify_email(verify_token)
+            st.success("E-mail confirmado! Agora você pode gerar seus vídeos.")
+        except ValueError as exc:
+            st.error(str(exc))
+        finally:
+            del st.query_params["verify_token"]
     token = st.session_state.get("affiliate_session_token")
     owner_id = auth.resolve(token) if token else None
     if owner_id is None:
@@ -130,9 +139,15 @@ if LOCAL_ACCOUNTS:
                     else:
                         try:
                             auth.register(email, password)
-                            st.success("Conta local criada. Entre na aba Entrar.")
+                            from app.afiliados.verification_email import send_verification_email
+                            confirmation = auth.create_verification_token(email)
+                            if confirmation:
+                                send_verification_email(email.strip().casefold(), confirmation)
+                            st.success("Conta criada. Confira seu e-mail e confirme antes de gerar vídeos.")
                         except ValueError as exc:
                             st.error(str(exc))
+                        except (RuntimeError, OSError):
+                            st.warning("Conta criada, mas o e-mail não pôde ser enviado. Configure o SMTP e solicite um novo link.")
         with forgot_tab:
             st.caption("Enviaremos um link de recuperação válido por 30 minutos.")
             with st.form("affiliate_forgot_password"):
@@ -151,7 +166,25 @@ if LOCAL_ACCOUNTS:
                             st.error("Informe um endereço de e-mail válido.")
                     except (RuntimeError, OSError):
                         st.error("O serviço de recuperação por e-mail está indisponível no momento.")
+        st.markdown("#### Reenviar verificação")
+        with st.form("affiliate_verify_email_again"):
+            verify_email = st.text_input("E-mail da conta", key="affiliate_verify_email_again_input")
+            if st.form_submit_button("Enviar novo link de confirmação"):
+                try:
+                    from app.afiliados.verification_email import send_verification_email
+                    confirmation = auth.create_verification_token(verify_email)
+                    if confirmation:
+                        send_verification_email(verify_email.strip().casefold(), confirmation)
+                    st.success("Se a conta precisar de verificação, enviaremos um novo link.")
+                except ValueError as exc:
+                    if "Muitas tentativas" in str(exc):
+                        st.warning("Limite de envios atingido. Aguarde antes de solicitar novamente.")
+                    else:
+                        st.error("Informe um e-mail válido.")
+                except (RuntimeError, OSError):
+                    st.error("O serviço de confirmação de e-mail está indisponível.")
         st.stop()
+    email_verified = auth.is_verified(owner_id)
     subscriptions = SubscriptionStore(ROOT / "data" / "afiliados-subscriptions.sqlite")
     ACTIVE_PLAN = subscriptions.get_plan(owner_id)
     ACTIVE_POLICY = get_plan_policy(ACTIVE_PLAN)
@@ -192,7 +225,7 @@ with st.sidebar:
 
 if selected_section == "Meus projetos":
     st.subheader("Meus projetos")
-    st.info("Salvar e reabrir projetos é exclusivo dos planos Pro e Creator.")
+    st.info("Salvar e reabrir projetos está disponível nos planos Pro, Premium e Creator.")
     imported_json = (st.file_uploader("Importar projeto Afiliados Creator (JSON, até 16 KB)", type=["json"], key="affiliate_project_upload")
                      if ACTIVE_POLICY.project_saving_allowed else None)
     if ACTIVE_POLICY.project_saving_allowed and st.button("Abrir projeto", disabled=imported_json is None):
@@ -309,11 +342,30 @@ if selected_section == "Criar anúncio":
         st.metric("Durações disponíveis", "15 / 20 / 30 s")
     with c3:
         st.metric("APIs pagas", "0")
-    st.caption("Os indicadores acima descrevem recursos do protótipo, não produções realizadas. Capas e campanhas em lote são exclusivas do Creator.")
+    st.caption("Os indicadores acima descrevem recursos do protótipo. Capas estão disponíveis no Premium e Creator; campanhas em lote são exclusivas do Creator.")
     if LOCAL_ACCOUNTS:
-        used_today = video_quota.usage(owner_id)
-        daily_limit = ACTIVE_POLICY.daily_video_limit
-        st.caption(f"Vídeos concluídos hoje (São Paulo): {used_today} / {daily_limit if daily_limit is not None else chr(8734)}")
+        if not email_verified:
+            st.warning("Confirme seu e-mail para desbloquear a geração de vídeos.")
+        if ACTIVE_PLAN == "gratis":
+            @st.fragment(run_every="1s")
+            def free_cooldown_counter():
+                state = video_quota.free_status(owner_id)
+                if state.in_progress:
+                    st.info("Seu vídeo gratuito está sendo processado. Aguarde a conclusão.")
+                elif state.remaining_seconds > 0:
+                    hours, remainder = divmod(state.remaining_seconds, 3600)
+                    minutes, seconds = divmod(remainder, 60)
+                    st.info(f"Próximo vídeo gratuito em **{hours:02d}:{minutes:02d}:{seconds:02d}** (24 horas após a conclusão).")
+                    st.session_state["affiliate_free_was_waiting"] = True
+                else:
+                    st.success("Seu vídeo gratuito está disponível.")
+                    if st.session_state.pop("affiliate_free_was_waiting", False):
+                        st.rerun()
+            free_cooldown_counter()
+        else:
+            used_today = video_quota.usage(owner_id)
+            daily_limit = ACTIVE_POLICY.daily_video_limit
+            st.caption(f"Vídeos concluídos hoje (Brasília): {used_today} / {daily_limit}")
     with st.expander("Importar dados de HTML salvo"):
         st.caption("Teste offline: envie o HTML da página para extrair nome e descrição. Nenhum site será acessado.")
         uploaded_html = st.file_uploader("HTML do produto (máximo 2 MB)", type=["html", "htm"])
@@ -438,7 +490,7 @@ if selected_section == "Criar anúncio":
         if photos and ACTIVE_POLICY.thumbnails_per_ad:
             try:
                 from app.afiliados.thumbnails import generate_thumbnails
-                covers = generate_thumbnails(photos[0].getvalue(), draft["product"]["product_name"])
+                covers = generate_thumbnails(photos[0].getvalue(), draft["product"]["product_name"], watermark=ACTIVE_POLICY.platform_watermark_required)
                 columns = st.columns(3)
                 for column, (style, cover) in zip(columns, covers.items()):
                     with column:
@@ -457,7 +509,7 @@ if selected_section == "Criar anúncio":
             except ValueError as exc:
                 st.error(f"Não foi possível criar as capas: {exc}")
         elif photos:
-            st.info("Capas automáticas são exclusivas do plano Creator.")
+            st.info("Capas automáticas estão disponíveis nos planos Premium e Creator.")
         # An approval belongs to one specific script/product, never to a previous draft.
         approval_payload = json.dumps(reviewed_draft, sort_keys=True, ensure_ascii=False)
         approval_key = hashlib.sha256(approval_payload.encode("utf-8")).hexdigest()
@@ -470,7 +522,8 @@ if selected_section == "Criar anúncio":
         from app.afiliados.render import VIDEO_VARIANTS
         selected_variant = (st.selectbox("Versão do vídeo", VIDEO_VARIANTS, format_func=str.title, key="affiliate_video_variant")
                             if ACTIVE_POLICY.videos_per_ad == 3 else "impacto")
-        if st.button("Gerar MP4 local (sem usar APIs)", disabled=not approved or not photos or len(photos) > 8 or not edited_script.strip()):
+        free_blocked = ACTIVE_PLAN == "gratis" and not video_quota.free_status(owner_id).can_generate
+        if st.button("Gerar MP4 local (sem usar APIs)", disabled=not email_verified or free_blocked or not approved or not photos or len(photos) > 8 or not edited_script.strip()):
             try:
                 from app.afiliados.render import render_mp4
                 reservation = video_quota.reserve(owner_id, ACTIVE_PLAN) if LOCAL_ACCOUNTS else None
@@ -483,6 +536,7 @@ if selected_section == "Criar anúncio":
                         selected_audio,
                         selected_extension,
                         variant=selected_variant,
+                        watermark=ACTIVE_POLICY.platform_watermark_required,
                         )
                     if reservation is not None:
                         video_quota.complete(owner_id, reservation)
@@ -529,6 +583,7 @@ if selected_section == "Criar anúncio":
                         selected_audio,
                         selected_extension,
                         plan=ACTIVE_PLAN,
+                        watermark=ACTIVE_POLICY.platform_watermark_required,
                         )
                     if reservation is not None:
                         video_quota.complete(owner_id, reservation)
