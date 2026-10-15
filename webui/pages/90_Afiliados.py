@@ -45,6 +45,33 @@ st.markdown("""
 <div class="ac-tagline">Crie anúncios com fotos reais, vídeos e capas em poucos passos.</div></div></div></div>
 """, unsafe_allow_html=True)
 # Explicit local-only opt-in; public deployments must use a hardened identity provider.
+from app.afiliados.showcase import public_demo_videos, public_plan_comparison  # noqa: E402
+
+
+def show_public_studio():
+    """Read-only public view; no rendering, downloads or private project access."""
+    st.markdown("### Conheça o estúdio antes de criar sua conta")
+    st.caption("Explore o funcionamento gratuitamente. Para gerar, baixar ou gerenciar anúncios, entre ou cadastre-se.")
+    preview_tab, examples_tab, pricing_tab = st.tabs(("Prévia do editor", "Vídeos de exemplo", "Planos"))
+    with preview_tab:
+        st.markdown("#### Criar anúncio")
+        st.text_input("Link do produto", value="https://shopee.com.br/...", disabled=True, key="public_preview_url")
+        st.text_input("Nome do produto", value="Exemplo: Aspirador portátil", disabled=True, key="public_preview_name")
+        st.text_area("Roteiro do vídeo", value="Aqui você revisa o roteiro antes de gerar seu anúncio.", disabled=True, key="public_preview_script")
+        st.button("Gerar vídeo — entre para desbloquear", disabled=True, key="public_preview_generate")
+        st.caption("Editor ilustrativo. Nenhum vídeo é gerado sem autenticação.")
+    with examples_tab:
+        st.markdown("#### Demonstrações")
+        demos = public_demo_videos(ROOT)
+        if demos:
+            for demo in demos:
+                st.video(str(demo))
+        else:
+            st.info("Vídeos demonstrativos serão publicados aqui. Nenhum exemplo fictício foi apresentado como vídeo real.")
+    with pricing_tab:
+        st.table(public_plan_comparison())
+    st.divider()
+
 LOCAL_ACCOUNTS = os.environ.get("AFILIADOS_LOCAL_ACCOUNTS") == "1"
 owner_id = None
 store = None
@@ -57,35 +84,7 @@ if LOCAL_ACCOUNTS:
     owner_id = auth.resolve(token) if token else None
     if owner_id is None:
         st.session_state.pop("affiliate_session_token", None)
-        st.markdown("### Conheça o estúdio antes de criar sua conta")
-        st.caption("Explore o funcionamento gratuitamente. Para gerar, baixar ou gerenciar anúncios, entre ou cadastre-se.")
-        preview_tab, examples_tab, pricing_tab = st.tabs(("Prévia do editor", "Vídeos de exemplo", "Planos"))
-        with preview_tab:
-            st.markdown("#### Criar anúncio")
-            st.text_input("Link do produto", value="https://shopee.com.br/...", disabled=True, key="public_preview_url")
-            st.text_input("Nome do produto", value="Exemplo: Aspirador portátil", disabled=True, key="public_preview_name")
-            st.text_area("Roteiro do vídeo", value="Aqui você revisa o roteiro antes de gerar seu anúncio.", disabled=True, key="public_preview_script")
-            st.button("Gerar vídeo — entre para desbloquear", disabled=True, key="public_preview_generate")
-            st.caption("Editor ilustrativo. Nenhum vídeo é gerado sem autenticação.")
-        with examples_tab:
-            st.markdown("#### Demonstrações")
-            demo_dir = ROOT / "assets" / "afiliados" / "demos"
-            demos = sorted(demo_dir.glob("*.mp4"))[:6] if demo_dir.is_dir() else []
-            if demos:
-                for demo in demos:
-                    st.video(str(demo))
-            else:
-                st.info("Vídeos demonstrativos serão publicados aqui. Nenhum exemplo fictício foi apresentado como vídeo real.")
-        with pricing_tab:
-            st.table({
-                "Plano": ["Grátis", "Pro", "Creator"],
-                "Vídeos por dia": ["1", "5", "Ilimitados (uso justo)"],
-                "Vídeos por anúncio": [1, 1, 3],
-                "Capas por anúncio": [0, 0, 9],
-                "Salvar projetos": ["Não", "Sim", "Sim"],
-                "Publicidade": ["Sim", "Não", "Não"],
-            })
-        st.divider()
+        show_public_studio()
         st.subheader("Acessar Afiliados Creator")
         st.warning("Login experimental para uso local. Não publique esta opção na internet.")
         reset_token = st.query_params.get("reset_token")
@@ -157,16 +156,8 @@ if LOCAL_ACCOUNTS:
     media_store = MediaStore(ROOT / "data" / "afiliados-media.sqlite")
 
 if not LOCAL_ACCOUNTS:
-    st.subheader("Conheça o Afiliados Creator")
-    st.info("O editor exige login. A autenticação ainda não foi configurada neste ambiente.")
-    st.markdown("**Recursos:** geração de vídeos verticais, roteiros e opções de planos.")
-    st.table({
-        "Plano": ["Grátis", "Pro", "Creator"],
-        "Vídeos por dia": ["1", "5", "Ilimitados (uso justo)"],
-        "Vídeos por anúncio": [1, 1, 3],
-        "Capas por anúncio": [0, 0, 9],
-        "Salvar projetos": ["Não", "Sim", "Sim"],
-    })
+    show_public_studio()
+    st.info("Para criar anúncios é necessário entrar ou criar uma conta. O login está indisponível nesta instalação.")
     st.stop()
 
 if st.session_state.pop("affiliate_open_imported", False):
