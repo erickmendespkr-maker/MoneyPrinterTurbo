@@ -89,3 +89,7 @@ O renderizador aceita impacto, beneficio e curiosidade, com posicoes de legenda 
 ## Campanha em lote: tres videos e nove capas
 
 O modulo app/afiliados/campaign.py monta localmente um ZIP contendo videos/impacto.mp4, videos/beneficio.mp4, videos/curiosidade.mp4 e tres PNG por video em covers/<variacao>/<estilo>.png, mais manifest.json. O dashboard oferece botao de gerar e baixar o pacote apos a aprovacao do roteiro. Fotos sao reais e as capas recebem identificacao visual da variacao. O processo e sincrono, pesado em CPU e memoria, sem APIs pagas. O limite do ZIP e 350 MB; se algum render falhar, nao e oferecido pacote parcial. Ainda faltam testes reais de desempenho e codificacao das tres variantes no ambiente de deploy.
+
+## Regra comercial confirmada: videos e capas por anuncio
+
+Grátis: um vídeo por anúncio, nenhuma thumbnail, um vídeo concluído por dia e marca-d'água obrigatória. Pro: um vídeo por anúncio, nenhuma thumbnail, cinco vídeos concluídos por dia e marca-d'água obrigatória. Creator: três vídeos por anúncio, nove thumbnails (três por vídeo), vídeos diários ilimitados sob uso justo e marca-d'água opcional/personalizada. O lote de três vídeos valida o direito Creator na função de geração. Como a verificação confiável de assinatura ainda não foi implementada, o dashboard opera conservadoramente como Grátis, sem liberar thumbnails ou lote Creator. Os limites diários ainda precisam de contabilidade transacional no servidor antes de lançamento público.
