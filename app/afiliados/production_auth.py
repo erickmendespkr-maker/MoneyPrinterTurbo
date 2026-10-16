@@ -116,9 +116,12 @@ class SupabaseAuth:
             raise ValueError("E-mail ou senha inválidos")
         return email.strip().casefold(), password
 
-    def register(self, email: str, password: str) -> None:
-        """Configure email confirmation and CAPTCHA in the Supabase dashboard."""
+    def register(self, email: str, password: str, *, captcha_token: str) -> None:
+        """Require server-validated Turnstile before every public signup."""
+        from app.afiliados.turnstile import load_turnstile_config, verify_registration_token
         email, password = self._credentials(email, password)
+        config = load_turnstile_config(required=True)
+        verify_registration_token(captcha_token, config)
         result = self._request("POST", "/signup", {"email": email, "password": password})
         # Fail closed when the provider is configured to auto-confirm signups.
         if result.get("access_token") or result.get("refresh_token"):
