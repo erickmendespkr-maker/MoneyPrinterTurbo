@@ -21,10 +21,22 @@ PLANS = {
 }
 
 
-def get_plan_policy(plan: str) -> PlanPolicy:
-    if not isinstance(plan, str) or plan not in PLANS:
+def normalize_plan_code(plan: str) -> str:
+    """Normalize the real Supabase free code to the legacy policy key.
+
+    This is a compatibility boundary, not an authorization decision.
+    Subscription entitlements must be resolved server-side.
+    """
+    if not isinstance(plan, str):
         raise ValueError("Plano inválido")
-    return PLANS[plan]
+    canonical = "gratis" if plan == "free" else plan
+    if canonical not in PLANS:
+        raise ValueError("Plano inválido")
+    return canonical
+
+
+def get_plan_policy(plan: str) -> PlanPolicy:
+    return PLANS[normalize_plan_code(plan)]
 
 
 def can_generate(plan: str, videos_completed_today: int) -> bool:
