@@ -50,3 +50,20 @@ def test_nonpublic_dns_rejected():
                return_value=[(None,None,None,None,("127.0.0.1",443))]):
         with pytest.raises(ValueError):
             preview_product_link("https://shopee.com.br/item")
+
+def test_meta_tag_attribute_order_and_html_entities():
+    from app.services.afiliados_product_importer import _meta
+    page = '<meta content="Kit Potes &amp; Tampas" property="og:title">'
+    assert _meta(page, "og:title") == "Kit Potes & Tampas"
+
+def test_html_without_metadata_uses_manual_fallback():
+    response = MagicMock()
+    response.status_code = 200
+    response.headers = {"Content-Type": "text/html"}
+    response.iter_content.return_value = [b"<html><body>Login required</body></html>"]
+    client = MagicMock()
+    client.get.return_value = response
+    with patch("app.services.afiliados_product_importer.socket.getaddrinfo", return_value=PUBLIC_DNS):
+        result = preview_product_link("https://shopee.com.br/item", session=client)
+    assert result.status == "metadata_unavailable"
+    assert result.title is None
