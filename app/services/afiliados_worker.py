@@ -16,6 +16,7 @@ from loguru import logger
 from app.services.afiliados_backend import AfiliadosBackend
 from app.services.afiliados_render_params import build_video_params
 from app.services.afiliados_product_media import download_product_photos
+from app.services.afiliados_video_watermark import apply_plan_watermark
 from app.utils import utils
 
 
@@ -49,6 +50,7 @@ def process_one() -> bool:
 
     generation_id = job["generation_id"]
     user_id = job["user_id"]
+    plan_snapshot = backend.get_generation_plan(generation_id, user_id)
     stop_heartbeat = threading.Event()
     heartbeat_thread = threading.Thread(
         target=_heartbeat_loop, args=(backend, generation_id, stop_heartbeat), daemon=True,
@@ -80,7 +82,8 @@ def process_one() -> bool:
         actual = _duration_seconds(file_path)
         if abs(actual - job["duration_seconds"]) > 2.0:
             raise RuntimeError("render_duration_mismatch")
-        storage_path = backend.upload_video(user_id, generation_id, str(file_path))
+        branded_path = apply_plan_watermark(file_path, plan_snapshot)
+        storage_path = backend.upload_video(user_id, generation_id, str(branded_path))
         if not backend.finish(generation_id, True, storage_path=storage_path):
             raise RuntimeError("job_no_longer_processing")
         logger.info("Completed generation {}", generation_id)
