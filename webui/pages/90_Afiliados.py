@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
 from app.afiliados.core import AffiliateBrief, CTA, prepare_draft  # noqa: E402
 from app.afiliados.plans import get_plan_policy  # noqa: E402
 from app.afiliados.subscriptions import SubscriptionStore, AuthorizedProjects  # noqa: E402
-from app.afiliados.ads import ads_enabled, ad_placement, validated_adsense_config  # noqa: E402
+from app.afiliados.ads import ads_enabled, validated_adsense_config  # noqa: E402
 from app.afiliados.sponsor import sponsor_destination  # noqa: E402
 
 # Fail closed: subscription verification is not connected yet.
@@ -356,7 +356,7 @@ if selected_section == "Criar anúncio":
                     if confirmation:
                         send_verification_email(account_email, confirmation)
                     st.success("Verifique a caixa de entrada ou a pasta de spam.")
-                except ValueError as exc:
+                except ValueError:
                     st.warning("Limite de reenvios atingido. Aguarde antes de tentar novamente.")
                 except (RuntimeError, OSError):
                     st.error("O envio de e-mails está indisponível. Procure o administrador.")
