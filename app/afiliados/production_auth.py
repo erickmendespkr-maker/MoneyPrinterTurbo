@@ -6,6 +6,7 @@ Network requests occur only when a method is explicitly invoked.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -50,6 +51,20 @@ class SupabaseAuth:
                 or not 20 <= len(publishable_key) <= 4096
                 or publishable_key.startswith(("sb_secret_", "service_role"))):
             raise ValueError("Configuração do Supabase Auth inválida")
+        # A legacy JWT-shaped project key is accepted only when its untrusted
+        # payload identifies the public anon role. This inspection can ONLY
+        # deny keys; it never authorizes user identity or JWT signatures.
+        if publishable_key.count(".") == 2:
+            try:
+                encoded = publishable_key.split(".")[1]
+                decoded = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
+                role = json.loads(decoded).get("role")
+            except (ValueError, AttributeError, UnicodeDecodeError) as exc:
+                raise ValueError("Chave pública do Supabase inválida") from exc
+            if role != "anon":
+                raise ValueError("Chave de serviço privilegiada não é permitida")
+        elif not publishable_key.startswith("sb_publishable_"):
+            raise ValueError("Use apenas uma chave publicável do Supabase")
         self.auth_url = project_url.rstrip("/") + "/auth/v1"
         self.publishable_key = publishable_key
         self._opener = urllib.request.build_opener(_NoRedirects())
