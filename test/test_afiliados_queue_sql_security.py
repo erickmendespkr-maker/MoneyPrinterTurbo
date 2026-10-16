@@ -21,7 +21,7 @@ def test_queue_uses_only_trusted_workers_for_render_completion():
     for name, signature in (
         ("affiliate_worker_claim", ""),
         ("affiliate_worker_heartbeat", "uuid,uuid"),
-        ("affiliate_worker_finish", "uuid,uuid,text"),
+        ("affiliate_worker_finish", "uuid,uuid,text,bigint,bigint"),
         ("affiliate_worker_fail", "uuid,uuid,text"),
     ):
         assert f"REVOKE ALL ON FUNCTION public.{name}({signature}) FROM PUBLIC,anon,authenticated;" in sql
@@ -48,6 +48,8 @@ def test_worker_finalize_checks_lease_and_updates_credits_atomically():
     assert "status='completed',completed_at=v_now" in sql
     assert "v_count <> cardinality(v_job.reservation_ids)" in sql
     assert "output_sha256=p_sha256" in sql
+    assert "output_bytes=p_output_bytes,worker_wall_ms=p_wall_ms" in sql
+    assert "p_output_bytes bigint,p_wall_ms bigint" in sql
     assert "lease_expires_at" in sql
     assert "'/output.mp4'" in sql
     assert "'/output.zip'" in sql
@@ -61,3 +63,17 @@ def test_private_bucket_disallows_public_access_by_default():
     assert "GRANT SELECT" not in sql
     assert "GRANT INSERT" not in sql
     assert "GRANT UPDATE" not in sql
+
+
+
+def test_owner_dashboard_list_does_not_expose_storage_keys():
+    sql = QUEUE.read_text(encoding="utf-8")
+    assert "CREATE OR REPLACE FUNCTION public.affiliate_my_jobs(" in sql
+    assert "WHERE user_id=v_user" in sql
+    assert "LIMIT p_limit" in sql
+    assert "GRANT EXECUTE ON FUNCTION public.affiliate_my_jobs(integer) TO authenticated;" in sql
+    listing = sql.split("CREATE OR REPLACE FUNCTION public.affiliate_my_jobs(", 1)[1]
+    listing = listing.split("CREATE OR REPLACE FUNCTION public.affiliate_worker_claim(", 1)[0]
+    assert "'input_key'" not in listing
+    assert "'output_key'" not in listing
+    assert "'lease_token'" not in listing
