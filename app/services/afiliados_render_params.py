@@ -5,12 +5,11 @@ pipeline does not guarantee exact final duration; output must be probed before
 publishing. Product-specific media upload is not supported here yet. Never render unrelated stock footage as a product demonstration.
 """
 from app.models.afiliados_brief import ProductVideoBrief
-from app.models.schema import VideoParams, VideoAspect
+from app.models.schema import VideoParams, VideoAspect, MaterialInfo
 
 
-def build_video_params(brief_payload: dict, duration_seconds: int) -> VideoParams:
-    # Legacy parameter mapping is retained for contract tests only.
-    # The production worker must refuse stock footage until product media is integrated.
+def build_video_params(brief_payload: dict, duration_seconds: int, product_image_files: list[str] | None = None) -> VideoParams:
+    # Only server-downloaded, verified files may enter product_image_files.
     if duration_seconds not in (15, 20, 30):
         raise ValueError("Unsupported duration")
     brief = ProductVideoBrief.model_validate({
@@ -33,7 +32,8 @@ def build_video_params(brief_payload: dict, duration_seconds: int) -> VideoParam
         video_aspect=VideoAspect.portrait,
         video_language="pt-BR",
         voice_name=brief.voice,
-        video_source="pexels",
+        video_source="local" if product_image_files else "pexels",
+        video_materials=[MaterialInfo(provider="local", url=p) for p in product_image_files] if product_image_files else None,
         video_count=1,
         video_clip_duration=5,
         video_script_prompt=script_instruction,
