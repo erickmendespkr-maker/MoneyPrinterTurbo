@@ -1,6 +1,7 @@
 """Validated Afiliados Creator product briefs (no user-supplied file paths)."""
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Literal
+from app.models.afiliados_product_source import ProductSource
 
 
 class ProductVideoBrief(BaseModel):
@@ -12,6 +13,7 @@ class ProductVideoBrief(BaseModel):
     voice: Literal["pt-BR-FranciscaNeural", "pt-BR-AntonioNeural"] = "pt-BR-FranciscaNeural"
     cta: str = Field(default="Comente EU QUERO nos comentários", max_length=300)
     language: Literal["pt-BR"] = "pt-BR"
+    source: ProductSource | None = None
     duration_seconds: Literal[15, 20, 30] = 15
 
     @field_validator("product_name")
