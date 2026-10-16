@@ -72,7 +72,8 @@ class LocalAuth:
         digest = self._derive(password, salt)
         try:
             with self._connect() as db:
-                db.execute("INSERT INTO affiliate_users VALUES (?,?,?,?)", (owner_id, email, salt, digest))
+                db.execute("""INSERT INTO affiliate_users (id,email,salt,password_hash)
+                    VALUES (?,?,?,?)""", (owner_id, email, salt, digest))
         except sqlite3.IntegrityError as exc:
             raise ValueError("Não foi possível criar esta conta") from exc
         return owner_id
