@@ -196,3 +196,29 @@ O código bloqueia explicitamente `AFILIADOS_LOCAL_ACCOUNTS=1` caso `AFILIADOS_P
 O controle de geração limita globalmente todas as contas gratuitas, inclusive novas contas, a **12 tentativas de processamento por janela móvel de uma hora** e **40 por janela móvel de 24 horas**, com contagem transacional e mensagens de fila/capacidade indisponível. Isso é proteção inicial de custos em um único banco local; os limites devem ser ajustados após aferir custo real por vídeo e migrados para banco compartilhado com workers. Tentativas malsucedidas consomem orçamento global de processamento, mas não iniciam o cooldown individual de 24 horas. A rotina também limita 3 tentativas de cadastro por e-mail por hora, sem usar IP como identidade. Não afirmamos que CAPTCHA identifica pessoas únicas: múltiplas contas humanas continuam possíveis.
 
 **Pré-requisitos de produção:** provedor de identidade com verificação obrigatória; Turnstile confirmado em teste de navegador real; WAF/rate-limiting no proxy confiável; proteção antiabuso que preserve a privacidade e permita suporte a falsos positivos; storage/filas/cotas centralizados; HTTPS e gestão de segredos. Nenhuma API paga foi ativada nem foram configuradas chaves reais.
+
+## Fila assíncrona e armazenamento privado — preparação (2026-10-15)
+
+Foram adicionados arquivos de backend para uma fila de vídeo PostgreSQL/Supabase,
+uma camada de Storage privado e um trabalhador separado da interface. A fila
+armazena o estado da geração e confirma a cota somente após a conclusão e
+o upload de um MP4/ZIP válido. A migração `002_affiliate_jobs.sql` revoga
+os privilégios de conclusão direta anteriormente concedidos a usuários
+autenticados. Somente o trabalhador autorizado pode finalizar e liberar
+reservas. As alterações mantêm o plano Grátis com 24 horas corridas de
+cooldown **após** sucesso.
+
+A entrada dos arquivos usa ZIP com manifesto limitado e sem informações
+de plano, permissão ou marca-d'água. O worker aplica marca-d'água com base
+no plano de assinatura consultado no servidor, e não nos campos enviados
+pelo cliente. Os arquivos ficam previstos no bucket privado
+`afiliados-private`, com download mediante link assinado e consulta
+autenticada de propriedade e conclusão.
+
+**Tudo nesta seção é código preparado, não infraestrutura ativada.**
+Os scripts `001`, `002` e `003` ainda precisam ser executados e
+validados no Postgres real; o trabalhador exige configuração e ativação
+explícita. A interface pública de geração, pagamentos, retenção e limpeza
+de mídia, filas/limites sob carga e testes end-to-end de vídeo permanecem
+pendentes. Consulte `infra/supabase/ASYNC_RENDERING.md` para o fluxo
+completo e os bloqueios antes de publicar.
