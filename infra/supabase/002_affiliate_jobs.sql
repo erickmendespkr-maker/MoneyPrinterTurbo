@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS affiliate_private.render_jobs (
   lease_token uuid,
   lease_expires_at timestamptz,
   output_sha256 text,
+  output_bytes bigint CHECK (output_bytes BETWEEN 1 AND 367001600),
+  worker_wall_ms bigint CHECK (worker_wall_ms BETWEEN 0 AND 21600000),
   error_code text,
   created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   finished_at timestamptz,
@@ -227,7 +229,8 @@ END
 $$;
 
 CREATE OR REPLACE FUNCTION public.affiliate_worker_finish(
-  p_job_id uuid,p_lease_token uuid,p_sha256 text
+  p_job_id uuid,p_lease_token uuid,p_sha256 text,
+  p_output_bytes bigint,p_wall_ms bigint
 ) RETURNS text
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $$
@@ -240,8 +243,94 @@ BEGIN
   IF auth.role() IS DISTINCT FROM 'service_role' THEN
     RAISE EXCEPTION 'Worker autorizado obrigatorio' USING ERRCODE='42501';
   END IF;
-  IF p_sha256 IS NULL OR p_sha256 !~ '^[0-9a-f]{64}$' THEN
+  IF p_sha256 IS NULL OR p_sha256 !~ '^[0-9a-f]{64}
+  PERFORM pg_catalog.pg_advisory_xact_lock(819320123888::bigint);
+  v_now := clock_timestamp();
+  SELECT * INTO v_job FROM affiliate_private.render_jobs j
+    WHERE j.id=p_job_id AND j.status='running'
+      AND j.lease_token=p_lease_token AND j.lease_expires_at > v_now
+    FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Lease expirada ou invalida' USING ERRCODE='42501';
+  END IF;
+  UPDATE affiliate_private.renders r
+    SET status='completed',completed_at=v_now
+    WHERE r.id=ANY(v_job.reservation_ids) AND r.user_id=v_job.user_id
+      AND r.status='reserved';
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  IF v_count <> cardinality(v_job.reservation_ids) THEN
+    RAISE EXCEPTION 'Reserva inconsistente' USING ERRCODE='P0001';
+  END IF;
+  v_key := v_job.user_id::text || '/' || v_job.id::text ||
+           CASE WHEN v_job.kind='campaign' THEN '/output.zip'
+                ELSE '/output.mp4' END;
+  UPDATE affiliate_private.render_jobs j SET
+    status='completed',output_key=v_key,output_sha256=p_sha256,
+    output_bytes=p_output_bytes,worker_wall_ms=p_wall_ms,
+    finished_at=v_now,lease_token=NULL,lease_expires_at=NULL
+    WHERE j.id=v_job.id;
+  RETURN v_key;
+END
+$$;
+
+CREATE OR REPLACE FUNCTION public.affiliate_worker_fail(
+  p_job_id uuid,p_lease_token uuid,p_error_code text
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $$
+DECLARE
+  v_job affiliate_private.render_jobs%ROWTYPE;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'Worker autorizado obrigatorio' USING ERRCODE='42501';
+  END IF;
+  IF p_error_code IS NULL OR p_error_code NOT IN (
+    'invalid_input','render_failed','storage_failed','timeout','worker_failed'
+  ) THEN
+    RAISE EXCEPTION 'Codigo de erro invalido' USING ERRCODE='22023';
+  END IF;
+  PERFORM pg_catalog.pg_advisory_xact_lock(819320123888::bigint);
+  SELECT * INTO v_job FROM affiliate_private.render_jobs j
+    WHERE j.id=p_job_id AND j.status='running'
+      AND j.lease_token=p_lease_token AND j.lease_expires_at > clock_timestamp()
+    FOR UPDATE;
+  IF NOT FOUND THEN RETURN false; END IF;
+  DELETE FROM affiliate_private.renders r
+    WHERE r.id=ANY(v_job.reservation_ids) AND r.user_id=v_job.user_id
+      AND r.status='reserved';
+  UPDATE affiliate_private.render_jobs j SET
+    status='failed',error_code=p_error_code,finished_at=clock_timestamp(),
+    lease_token=NULL,lease_expires_at=NULL WHERE j.id=v_job.id;
+  RETURN true;
+END
+$$;
+
+-- Newly created SECURITY DEFINER RPCs would otherwise be executable by PUBLIC.
+REVOKE ALL ON FUNCTION public.affiliate_enqueue_job(uuid,text,text) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.affiliate_job_status(uuid) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.affiliate_my_jobs(integer) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.affiliate_enqueue_job(uuid,text,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.affiliate_job_status(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.affiliate_my_jobs(integer) TO authenticated;
+REVOKE ALL ON FUNCTION public.affiliate_worker_claim() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.affiliate_worker_heartbeat(uuid,uuid) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.affiliate_worker_finish(uuid,uuid,text,bigint,bigint) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.affiliate_worker_fail(uuid,uuid,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.affiliate_worker_claim() TO service_role;
+GRANT EXECUTE ON FUNCTION public.affiliate_worker_heartbeat(uuid,uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.affiliate_worker_finish(uuid,uuid,text,bigint,bigint) TO service_role;
+GRANT EXECUTE ON FUNCTION public.affiliate_worker_fail(uuid,uuid,text) TO service_role;
+COMMIT;
+ THEN
     RAISE EXCEPTION 'Hash de arquivo invalido' USING ERRCODE='22023';
+  END IF;
+  IF p_wall_ms IS NULL OR p_wall_ms < 0 OR p_wall_ms > 21600000
+     OR p_output_bytes IS NULL OR p_output_bytes < 12
+     OR p_output_bytes > CASE WHEN EXISTS(
+       SELECT 1 FROM affiliate_private.render_jobs j
+       WHERE j.id=p_job_id AND j.kind='campaign'
+     ) THEN 367001600 ELSE 104857600 END THEN
+    RAISE EXCEPTION 'Metricas de processamento invalidas' USING ERRCODE='22023';
   END IF;
   PERFORM pg_catalog.pg_advisory_xact_lock(819320123888::bigint);
   v_now := clock_timestamp();
