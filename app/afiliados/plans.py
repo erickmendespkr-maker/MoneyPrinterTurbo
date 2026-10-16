@@ -51,4 +51,8 @@ def require_feature(plan: str, feature: str) -> None:
     else:
         raise ValueError("Recurso inválido")
     if not allowed:
-        raise PermissionError("Recurso não disponível neste plano")
+        if feature == "campaign":
+            raise PermissionError("Pacote completo exclusivo do plano Creator")
+        if feature == "thumbnails":
+            raise PermissionError("Thumbnails disponíveis somente no Premium e Creator")
+        raise PermissionError("Salvar projetos exige um plano pago")
