@@ -29,6 +29,7 @@ def test_shopee_open_graph_preview():
     "https://evil.example/shopee.com.br",
     "https://shopee.com.br.evil.example/item",
     "https://user:password@shopee.com.br/item",
+    "https://shopee.com.br:8443/item",
 ])
 def test_reject_unsafe_links(url):
     with pytest.raises(ValueError):
