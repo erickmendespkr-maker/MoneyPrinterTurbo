@@ -259,7 +259,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.affiliate_my_plan()
 RETURNS text
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
-AS $
+AS $$
 DECLARE
   v_user uuid := auth.uid();
   v_plan text;
@@ -274,7 +274,7 @@ BEGIN
     WHERE s.user_id = v_user;
   RETURN COALESCE(v_plan, 'gratis');
 END
-$;
+$$;
 
 -- PostgreSQL grants EXECUTE to PUBLIC on new functions by default.
 -- Revoke explicitly and whitelist authenticated users only.
