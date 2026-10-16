@@ -50,10 +50,10 @@ def _public_dns(host: str) -> None:
             raise ValueError("Marketplace resolved to a non-public address")
 
 def _meta(content: str, field: str) -> str | None:
-    for match in re.finditer(r"<meta\\b[^>]*>", content, re.IGNORECASE):
+    for match in re.finditer(r"<meta\b[^>]*>", content, re.IGNORECASE):
         tag = match.group()
         attrs = dict((key.lower(), html.unescape(value)) for key, value in re.findall(
-            r"""([\\w:-]+)\\s*=\\s*["']([^"']*)["']""", tag))
+            r"""([\w:-]+)\s*=\s*["']([^"']*)["']""", tag))
         if attrs.get("property") == field or attrs.get("name") == field:
             return attrs.get("content", "").strip()[:2000] or None
     return None
