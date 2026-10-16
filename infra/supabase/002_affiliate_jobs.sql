@@ -124,6 +124,39 @@ BEGIN
 END
 $$;
 
+-- Owner-scoped read-only listing for the beta dashboard. No private
+-- input/output keys, token, or worker lease are ever returned.
+CREATE OR REPLACE FUNCTION public.affiliate_my_jobs(p_limit integer DEFAULT 10)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $
+DECLARE
+  v_user uuid := auth.uid();
+  v_jobs jsonb;
+BEGIN
+  IF v_user IS NULL THEN
+    RAISE EXCEPTION 'Autenticacao obrigatoria' USING ERRCODE='42501';
+  END IF;
+  IF p_limit IS NULL OR p_limit < 1 OR p_limit > 20 THEN
+    RAISE EXCEPTION 'Limite de listagem invalido' USING ERRCODE='22023';
+  END IF;
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+      'id',j.id,'status',j.status,'kind',j.kind,
+      'created_at',j.created_at,'finished_at',j.finished_at,
+      'error_code',j.error_code) ORDER BY j.created_at DESC),
+    '[]'::jsonb)
+  INTO v_jobs
+  FROM (
+    SELECT id,status,kind,created_at,finished_at,error_code
+    FROM affiliate_private.render_jobs
+    WHERE user_id=v_user
+    ORDER BY created_at DESC
+    LIMIT p_limit
+  ) j;
+  RETURN v_jobs;
+END
+$;
+
 -- Worker RPCs require the service_role JWT and do not accept owner IDs
 -- from callers. A lease UUID ensures stale workers cannot finalize twice.
 CREATE OR REPLACE FUNCTION public.affiliate_worker_claim()
@@ -273,8 +306,10 @@ $$;
 -- Newly created SECURITY DEFINER RPCs would otherwise be executable by PUBLIC.
 REVOKE ALL ON FUNCTION public.affiliate_enqueue_job(uuid,text,text) FROM PUBLIC,anon;
 REVOKE ALL ON FUNCTION public.affiliate_job_status(uuid) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.affiliate_my_jobs(integer) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.affiliate_enqueue_job(uuid,text,text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.affiliate_job_status(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.affiliate_my_jobs(integer) TO authenticated;
 REVOKE ALL ON FUNCTION public.affiliate_worker_claim() FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.affiliate_worker_heartbeat(uuid,uuid) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.affiliate_worker_finish(uuid,uuid,text) FROM PUBLIC,anon,authenticated;
