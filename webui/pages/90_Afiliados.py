@@ -73,6 +73,10 @@ def show_public_studio():
     st.divider()
 
 LOCAL_ACCOUNTS = os.environ.get("AFILIADOS_LOCAL_ACCOUNTS") == "1"
+# Public deployment cannot expose experimental SQLite authentication.
+if LOCAL_ACCOUNTS and os.environ.get("AFILIADOS_PUBLIC_DEPLOYMENT") == "1":
+    st.error("Autenticação local experimental indisponível em implantação pública.")
+    st.stop()
 owner_id = None
 store = None
 if LOCAL_ACCOUNTS:
@@ -80,6 +84,14 @@ if LOCAL_ACCOUNTS:
     from app.afiliados.storage import ProjectStore
 
     auth = LocalAuth(ROOT / "data" / "afiliados-auth.sqlite")
+    from app.afiliados.turnstile import load_turnstile_config
+    try:
+        turnstile_config = load_turnstile_config(
+            required=os.environ.get("AFILIADOS_TURNSTILE_REQUIRED") == "1"
+        )
+    except RuntimeError:
+        # Fail closed: a partially configured challenge must never silently turn off.
+        turnstile_config = False
     verify_token = st.query_params.get("verify_token")
     if verify_token:
         try:
@@ -129,21 +141,42 @@ if LOCAL_ACCOUNTS:
                         else:
                             st.error("Não foi possível entrar com essas credenciais.")
         with register_tab:
+            captcha_token = None
+            if turnstile_config is False:
+                st.error("Cadastro temporariamente indisponível: proteção anti-bot incompleta.")
+            elif turnstile_config is not None:
+                from app.afiliados.turnstile_widget import registration_challenge
+                captcha_nonce = st.session_state.get("affiliate_turnstile_nonce", 0)
+                captcha_token = registration_challenge(turnstile_config.site_key, captcha_nonce)
+            else:
+                st.caption("Cadastro sem CAPTCHA: permitido apenas para testes locais.")
             with st.form("affiliate_register"):
                 email = st.text_input("E-mail", key="affiliate_register_email")
                 password = st.text_input("Senha (mínimo 12 caracteres)", type="password", key="affiliate_register_password")
                 confirm = st.text_input("Confirmar senha", type="password")
-                if st.form_submit_button("Criar conta"):
+                if st.form_submit_button("Criar conta", disabled=turnstile_config is False):
                     if password != confirm:
                         st.error("As senhas não coincidem.")
                     else:
                         try:
+                            if turnstile_config is not None:
+                                from app.afiliados.turnstile import verify_registration_token
+                                verify_registration_token(captcha_token, turnstile_config)
+                                # Challenge proof is consumed even if creating the account fails.
+                                st.session_state["affiliate_turnstile_nonce"] = (
+                                    st.session_state.get("affiliate_turnstile_nonce", 0) + 1
+                                )
                             auth.register(email, password)
                             from app.afiliados.verification_email import send_verification_email
                             confirmation = auth.create_verification_token(email)
                             if confirmation:
                                 send_verification_email(email.strip().casefold(), confirmation)
                             st.success("Conta criada. Confira seu e-mail e confirme antes de gerar vídeos.")
+                        except PermissionError:
+                            st.error("Falha na verificação anti-bot. Refaça a verificação antes de tentar novamente.")
+                            st.session_state["affiliate_turnstile_nonce"] = (
+                                st.session_state.get("affiliate_turnstile_nonce", 0) + 1
+                            )
                         except ValueError as exc:
                             st.error(str(exc))
                         except (RuntimeError, OSError):
