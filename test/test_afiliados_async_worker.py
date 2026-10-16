@@ -93,9 +93,10 @@ class MemoryQueue(SupabaseWorkerQueue):
         self.calls.append(("heartbeat", lease.job_id))
         return True
 
-    def finish(self, lease, checksum):
-        self.calls.append(("finish", lease.job_id, checksum))
+    def finish(self, lease, checksum, *, output_bytes, wall_ms):
+        self.calls.append(("finish", lease.job_id, checksum, output_bytes, wall_ms))
         assert checksum == "a" * 64
+        assert output_bytes > 12 and wall_ms >= 0
         return self.storage.object_key(lease.owner_id, lease.job_id, lease.kind)
 
     def fail(self, lease, code):
@@ -143,7 +144,7 @@ def test_worker_enforces_plan_watermark_without_browser_decision(plan, watermark
     worker = RenderWorker(queue, store, renderer=renderer, heartbeat_seconds=5)
     assert worker.run_once() is True
     assert seen == [(watermark, "impacto")]
-    assert queue.calls[0] == ("finish", JOB, "a" * 64)
+    assert queue.calls[0][:4] == ("finish", JOB, "a" * 64, len(MP4))
     assert store.outputs == [(JOB, "video", MP4)]
     assert worker.run_once() is False
 
