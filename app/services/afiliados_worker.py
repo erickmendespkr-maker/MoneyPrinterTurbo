@@ -37,6 +37,15 @@ def _heartbeat_loop(backend, generation_id: str, stop: threading.Event) -> None:
             logger.exception("Heartbeat failed for {}", generation_id)
 
 
+def _require_product_media_integration() -> None:
+    """Fail closed until private product images can reach the actual renderer.
+
+    Keep this gate separate so orchestration tests can exercise the remaining
+    worker lifecycle without implying product footage is production-ready.
+    """
+    raise RuntimeError("product_media_renderer_not_integrated")
+
+
 def process_one() -> bool:
     backend = AfiliadosBackend()
     job = backend.claim_next()
@@ -54,9 +63,8 @@ def process_one() -> bool:
     try:
         from app.services import task as task_service
 
-        # Product photos are not connected to the video pipeline yet.
-        # Fail the job without uploading a misleading generic stock video.
-        raise RuntimeError("product_media_renderer_not_integrated")
+        # Prevent unrelated Pexels footage being published as a real product.
+        _require_product_media_integration()
         params = build_video_params(job["brief"], job["duration_seconds"])
         result = task_service.start(generation_id, params, stop_at="video")
         if not isinstance(result, dict):
