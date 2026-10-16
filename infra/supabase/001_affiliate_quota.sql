@@ -254,15 +254,39 @@ BEGIN
 END
 $$;
 
+-- Read-only entitlement, sourced from protected billing state.
+-- Never accept "plan" or "owner_id" from a request or JWT user_metadata.
+CREATE OR REPLACE FUNCTION public.affiliate_my_plan()
+RETURNS text
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $
+DECLARE
+  v_user uuid := auth.uid();
+  v_plan text;
+BEGIN
+  IF v_user IS NULL OR NOT EXISTS (
+    SELECT 1 FROM auth.users u
+    WHERE u.id = v_user AND u.email_confirmed_at IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'Confirmacao de e-mail obrigatoria' USING ERRCODE='42501';
+  END IF;
+  SELECT s.plan INTO v_plan FROM affiliate_private.subscriptions s
+    WHERE s.user_id = v_user;
+  RETURN COALESCE(v_plan, 'gratis');
+END
+$;
+
 -- PostgreSQL grants EXECUTE to PUBLIC on new functions by default.
 -- Revoke explicitly and whitelist authenticated users only.
 REVOKE ALL ON FUNCTION public.affiliate_reserve_videos(integer) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.affiliate_complete_videos(uuid[]) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.affiliate_release_videos(uuid[]) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.affiliate_free_status() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.affiliate_my_plan() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.affiliate_reserve_videos(integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.affiliate_complete_videos(uuid[]) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.affiliate_release_videos(uuid[]) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.affiliate_free_status() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.affiliate_my_plan() TO authenticated;
 
 COMMIT;
