@@ -180,3 +180,19 @@ Cadastro novo exige confirmação de e-mail por token exclusivo, de uso único, 
 
 **Limitações antes do lançamento público:** o login SQLite local continua inadequado para produção. A confirmação de e-mail não impede uma pessoa de criar várias contas com e-mails diferentes. Ainda precisamos de provedor confiável de identidade, CAPTCHA/Turnstile validado no servidor, limites por origem aplicados no proxy ou serviço de autenticação, antifraude proporcional e auditoria com atenção à privacidade. IP isolado não serve como identidade (pode ser compartilhado ou falsificado). Redis/Postgres transacional e fila com leases serão necessários para múltiplos trabalhadores, evitando perda de histórico e contagem divergente. Não afirmar proteção infalível contra múltiplas contas.
 
+
+## Próxima camada antiabuso — cadastro e orçamento grátis
+
+A tela de cadastro local **pode** apresentar Cloudflare Turnstile usando um componente Streamlit v2. O servidor valida o token na API Siteverify, exigindo `success=true`, o hostname exato configurado e `action=register`. Tokens ausentes, expirados, reutilizados ou inválidos são recusados; erro na chamada também bloqueia o cadastro. A validação é server-side, e a secret key não deve ser exposta ao navegador.
+
+Configuração (não ativada automaticamente):
+- `AFILIADOS_TURNSTILE_SITE_KEY`: chave pública do widget emitida pela Cloudflare.
+- `AFILIADOS_TURNSTILE_SECRET_KEY`: chave privada exclusivamente no servidor.
+- `AFILIADOS_TURNSTILE_HOSTNAME`: hostname público autorizado, sem protocolo ou caminho.
+- `AFILIADOS_TURNSTILE_REQUIRED=1`: exige configuração completa e bloqueia cadastros sem Turnstile; desativado em testes locais sem chaves.
+
+O código bloqueia explicitamente `AFILIADOS_LOCAL_ACCOUNTS=1` caso `AFILIADOS_PUBLIC_DEPLOYMENT=1`. A interface Streamlit/SQLite segue **proibida de ir ao ar como login público**; a validação Turnstile é uma camada experimental, não transforma esse sistema em autenticação de produção.
+
+O controle de geração limita globalmente todas as contas gratuitas, inclusive novas contas, a **12 tentativas de processamento por janela móvel de uma hora** e **40 por janela móvel de 24 horas**, com contagem transacional e mensagens de fila/capacidade indisponível. Isso é proteção inicial de custos em um único banco local; os limites devem ser ajustados após aferir custo real por vídeo e migrados para banco compartilhado com workers. Tentativas malsucedidas consomem orçamento global de processamento, mas não iniciam o cooldown individual de 24 horas. A rotina também limita 3 tentativas de cadastro por e-mail por hora, sem usar IP como identidade. Não afirmamos que CAPTCHA identifica pessoas únicas: múltiplas contas humanas continuam possíveis.
+
+**Pré-requisitos de produção:** provedor de identidade com verificação obrigatória; Turnstile confirmado em teste de navegador real; WAF/rate-limiting no proxy confiável; proteção antiabuso que preserve a privacidade e permita suporte a falsos positivos; storage/filas/cotas centralizados; HTTPS e gestão de segredos. Nenhuma API paga foi ativada nem foram configuradas chaves reais.
