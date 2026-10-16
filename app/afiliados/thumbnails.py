@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 import io
-import textwrap
-from PIL import Image, ImageDraw, ImageFont
+from PIL import ImageDraw, ImageFont
 from app.afiliados.render import VIDEO_VARIANTS, normalize_photo, overlay_watermark
 
 STYLES = ("impacto", "beneficio", "curiosidade")
