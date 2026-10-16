@@ -50,13 +50,13 @@ def process_one() -> bool:
 
     generation_id = job["generation_id"]
     user_id = job["user_id"]
-    plan_snapshot = backend.get_generation_plan(generation_id, user_id)
     stop_heartbeat = threading.Event()
     heartbeat_thread = threading.Thread(
         target=_heartbeat_loop, args=(backend, generation_id, stop_heartbeat), daemon=True,
     )
     heartbeat_thread.start()
     try:
+        plan_snapshot = backend.get_generation_plan(generation_id, user_id)
         from app.services import task as task_service
 
         # Prevent unrelated Pexels footage being published as a real product.
@@ -83,6 +83,8 @@ def process_one() -> bool:
         if abs(actual - job["duration_seconds"]) > 2.0:
             raise RuntimeError("render_duration_mismatch")
         branded_path = apply_plan_watermark(file_path, plan_snapshot)
+        if abs(_duration_seconds(branded_path) - job["duration_seconds"]) > 2.0:
+            raise RuntimeError("watermark_duration_mismatch")
         storage_path = backend.upload_video(user_id, generation_id, str(branded_path))
         if not backend.finish(generation_id, True, storage_path=storage_path):
             raise RuntimeError("job_no_longer_processing")
