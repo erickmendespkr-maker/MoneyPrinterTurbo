@@ -54,6 +54,9 @@ def process_one() -> bool:
     try:
         from app.services import task as task_service
 
+        # Product photos are not connected to the video pipeline yet.
+        # Fail the job without uploading a misleading generic stock video.
+        raise RuntimeError("product_media_renderer_not_integrated")
         params = build_video_params(job["brief"], job["duration_seconds"])
         result = task_service.start(generation_id, params, stop_at="video")
         if not isinstance(result, dict):
