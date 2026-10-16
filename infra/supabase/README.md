@@ -118,3 +118,7 @@ a identidade e o e-mail confirmado. O plano e as cotas são consultados
 nas RPCs em PostgreSQL, e não em cookies ou campos fornecidos pelo
 usuário. Na tela beta o contador exibe o estado devolvido pelo banco;
 a atualização ainda depende de nova leitura da página.
+
+## Checklist de verificação somente de leitura
+
+Antes de executar qualquer migração, abra o **projeto Supabase de desenvolvimento específico do Afiliados Creator** e execute `PREFLIGHT_READONLY.sql` no SQL Editor. As consultas verificam se já existem tabelas do SaaS, quem tem permissões nas RPCs e se o bucket de vídeo é privado. Essas consultas não modificam registros nem configuração. Na migração de uma instância vazia, alguns resultados deverão aparecer como `false`/`NULL` — isso é esperado; anote os resultados antes de aplicar os scripts. Nunca aplique a migração em um projeto compartilhado com outros aplicativos sem revisão e aprovação do proprietário.
