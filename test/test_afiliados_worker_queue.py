@@ -73,7 +73,7 @@ def test_valid_lease_enforces_user_and_input_namespace():
     assert lease.plan == "gratis"
     assert lease.input_key == f"{OWNER}/{JOB}/input.zip"
     assert q.heartbeat(lease) is True
-    assert q.finish(lease, "a" * 64) == f"{OWNER}/{JOB}/output.mp4"
+    assert q.finish(lease, "a" * 64, output_bytes=1024, wall_ms=1200) == f"{OWNER}/{JOB}/output.mp4"
     assert [r.full_url.rsplit("/", 1)[-1] for r in q._opener.requests] == [
         "affiliate_worker_claim", "affiliate_worker_heartbeat",
         "affiliate_worker_finish",
@@ -106,5 +106,17 @@ def test_invalid_output_checksum_rejected_before_api_call():
     q = worker()
     lease = worker(claim_payload()).claim()
     with pytest.raises(ValueError):
-        q.finish(lease, "short")
+        q.finish(lease, "short", output_bytes=1024, wall_ms=1200)
+    assert q._opener.requests == []
+
+
+@pytest.mark.parametrize("bytes_count,wall_ms", [
+    (0, 100), (104857601, 100), (1024, -1),
+    (1024, 21600001), (True, 100), (1024, 1.4),
+])
+def test_rejects_invalid_worker_metrics_before_network(bytes_count, wall_ms):
+    q = worker()
+    lease = worker(claim_payload()).claim()
+    with pytest.raises(ValueError, match="Métricas"):
+        q.finish(lease, "a" * 64, output_bytes=bytes_count, wall_ms=wall_ms)
     assert q._opener.requests == []
