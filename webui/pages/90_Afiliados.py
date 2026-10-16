@@ -408,6 +408,10 @@ if selected_section == "Criar anúncio":
                     minutes, seconds = divmod(state.attempt_retry_seconds, 60)
                     st.warning(f"Muitas tentativas de geração. Tente novamente em {minutes:02d}:{seconds:02d}.")
                     st.session_state["affiliate_free_was_waiting"] = True
+                elif state.capacity_retry_seconds > 0:
+                    minutes, seconds = divmod(state.capacity_retry_seconds, 60)
+                    st.warning(f"Capacidade gratuita ocupada. Nova tentativa em {minutes:02d}:{seconds:02d}.")
+                    st.session_state["affiliate_free_was_waiting"] = True
                 else:
                     st.success("Seu vídeo gratuito está disponível.")
                     if st.session_state.pop("affiliate_free_was_waiting", False):
