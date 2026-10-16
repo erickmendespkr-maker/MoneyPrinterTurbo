@@ -72,7 +72,116 @@ def show_public_studio():
         st.table(public_plan_comparison())
     st.divider()
 
+# Opt-in public-account integration preview. The production rendering worker
+# and billing are NOT connected: no generation actions are exposed in this mode.
+PUBLIC_AUTH_BETA = os.environ.get("AFILIADOS_PUBLIC_AUTH_BETA") == "1"
 LOCAL_ACCOUNTS = os.environ.get("AFILIADOS_LOCAL_ACCOUNTS") == "1"
+if PUBLIC_AUTH_BETA:
+    if LOCAL_ACCOUNTS:
+        st.error("Escolha apenas um provedor de autenticação.")
+        st.stop()
+    try:
+        from app.afiliados.production_auth import SupabaseAuth, AuthDenied, AuthServiceUnavailable
+        from app.afiliados.production_quota import SupabaseVideoQuota
+        from app.afiliados.turnstile import load_turnstile_config
+        public_auth = SupabaseAuth.from_env()
+        public_captcha = load_turnstile_config(required=True)
+    except (ValueError, RuntimeError):
+        st.error("Modo beta indisponível: autenticação e CAPTCHA ainda não configurados.")
+        st.stop()
+    st.warning("Beta de autenticação: a geração pública de vídeos ainda não está disponível.")
+    beta_session = st.session_state.get("affiliate_public_session")
+    beta_identity = None
+    if isinstance(beta_session, dict):
+        try:
+            beta_identity = public_auth.require_verified_user(beta_session["access_token"])
+        except (KeyError, ValueError, AuthDenied, AuthServiceUnavailable):
+            try:
+                new_session = public_auth.refresh(beta_session["refresh_token"])
+                st.session_state["affiliate_public_session"] = new_session
+                beta_session = new_session
+                beta_identity = public_auth.require_verified_user(new_session["access_token"])
+            except (KeyError, ValueError, AuthDenied, AuthServiceUnavailable):
+                st.session_state.pop("affiliate_public_session", None)
+                beta_session = None
+
+    if beta_identity is None:
+        show_public_studio()
+        st.markdown("### Minha conta — acesso beta")
+        login_tab, signup_tab, recover_tab = st.tabs(
+            ("Entrar", "Criar conta", "Recuperar senha")
+        )
+        with login_tab:
+            with st.form("affiliate_public_login"):
+                email = st.text_input("E-mail", key="ac_beta_login_email")
+                password = st.text_input("Senha", type="password", key="ac_beta_login_password")
+                if st.form_submit_button("Entrar"):
+                    try:
+                        st.session_state["affiliate_public_session"] = public_auth.login(email, password)
+                        st.rerun()
+                    except (ValueError, AuthDenied, AuthServiceUnavailable):
+                        st.error("Não foi possível entrar. Verifique suas credenciais e confirmação de e-mail.")
+        with signup_tab:
+            from app.afiliados.turnstile_widget import registration_challenge
+            nonce = st.session_state.get("affiliate_public_captcha_nonce", 0)
+            challenge = registration_challenge(public_captcha.site_key, nonce)
+            with st.form("affiliate_public_signup"):
+                email = st.text_input("E-mail", key="ac_beta_signup_email")
+                password = st.text_input("Senha (12 caracteres ou mais)", type="password")
+                confirmation = st.text_input("Confirme sua senha", type="password")
+                if st.form_submit_button("Criar conta"):
+                    try:
+                        if password != confirmation:
+                            raise ValueError("Confirmação de senha inválida")
+                        public_auth.register(email, password, captcha_token=challenge)
+                        st.success("Confira seu e-mail e confirme sua conta antes de entrar.")
+                    except (ValueError, PermissionError, RuntimeError):
+                        st.error("Não foi possível criar a conta. Confira os dados e refaça o CAPTCHA.")
+                    finally:
+                        st.session_state["affiliate_public_captcha_nonce"] = nonce + 1
+        with recover_tab:
+            with st.form("affiliate_public_recover"):
+                email = st.text_input("E-mail da conta", key="ac_beta_recover_email")
+                if st.form_submit_button("Enviar recuperação"):
+                    try:
+                        public_auth.recover(email)
+                        st.success("Se o e-mail estiver cadastrado, você receberá as instruções.")
+                    except (ValueError, AuthDenied, AuthServiceUnavailable):
+                        st.info("A solicitação não pôde ser concluída agora. Tente mais tarde.")
+        st.stop()
+
+    st.markdown("### Minha conta")
+    st.caption("Identidade verificada pelo Supabase Auth.")
+    st.write(f"E-mail: {beta_identity.email}")
+    try:
+        quota = SupabaseVideoQuota(public_auth)
+        current_plan = quota.plan(beta_session["access_token"])
+        st.write(f"Plano ativo: **{current_plan.title()}**")
+        if current_plan == "gratis":
+            status = quota.free_status(beta_session["access_token"])
+            if status.in_progress:
+                st.info("Geração em andamento.")
+            elif status.remaining_seconds:
+                hrs, rem = divmod(status.remaining_seconds, 3600)
+                mins, secs = divmod(rem, 60)
+                st.info(f"Próximo vídeo grátis em {hrs:02d}:{mins:02d}:{secs:02d}.")
+            elif not status.can_generate:
+                st.info("Limite temporário de tentativas ou capacidade atingido.")
+            else:
+                st.success("Cota de vídeo gratuita disponível.")
+            st.caption("Atualize a página para consultar novamente o tempo restante.")
+        st.info("A geração pública será ativada somente após a validação dos servidores e da fila de processamento.")
+    except (AuthDenied, AuthServiceUnavailable, ValueError):
+        st.error("Não foi possível consultar seu plano ou cota. Verifique a configuração do Supabase.")
+    if st.button("Sair da conta", key="affiliate_public_logout"):
+        try:
+            public_auth.logout(beta_session["access_token"])
+        except (AuthDenied, AuthServiceUnavailable):
+            st.warning("Sessão local encerrada; não foi possível confirmar o logout remoto.")
+        st.session_state.pop("affiliate_public_session", None)
+        st.rerun()
+    st.stop()
+
 # Public deployment cannot expose experimental SQLite authentication.
 if LOCAL_ACCOUNTS and os.environ.get("AFILIADOS_PUBLIC_DEPLOYMENT") == "1":
     st.error("Autenticação local experimental indisponível em implantação pública.")
