@@ -7,6 +7,7 @@ import argparse
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 from loguru import logger
@@ -26,6 +27,16 @@ def _duration_seconds(file_path: Path) -> float:
     return float(probe.stdout.strip())
 
 
+def _heartbeat_loop(backend, generation_id: str, stop: threading.Event) -> None:
+    while not stop.wait(60):
+        try:
+            if not backend.heartbeat(generation_id):
+                logger.warning("Heartbeat rejected for {}", generation_id)
+                return
+        except Exception:
+            logger.exception("Heartbeat failed for {}", generation_id)
+
+
 def process_one() -> bool:
     backend = AfiliadosBackend()
     job = backend.claim_next()
@@ -35,6 +46,11 @@ def process_one() -> bool:
 
     generation_id = job["generation_id"]
     user_id = job["user_id"]
+    stop_heartbeat = threading.Event()
+    heartbeat_thread = threading.Thread(
+        target=_heartbeat_loop, args=(backend, generation_id, stop_heartbeat), daemon=True,
+    )
+    heartbeat_thread.start()
     try:
         from app.services import task as task_service
 
@@ -63,6 +79,9 @@ def process_one() -> bool:
         except Exception:
             logger.exception("Unable to record failure for {}", generation_id)
         return False
+    finally:
+        stop_heartbeat.set()
+        heartbeat_thread.join(timeout=5)
     return True
 
 
