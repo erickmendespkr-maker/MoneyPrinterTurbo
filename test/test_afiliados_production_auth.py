@@ -1,4 +1,5 @@
 """Verify production auth does not trust browser claims or access tokens."""
+import base64
 import json
 import urllib.error
 from uuid import uuid4
@@ -165,3 +166,15 @@ def test_redirect_following_is_disabled_for_auth_tokens():
     auth = SupabaseAuth(PROJECT, KEY)
     assert any(handler.__class__.__name__ == "_NoRedirects"
                for handler in auth._opener.handlers)
+
+
+def test_rejects_legacy_service_role_and_accepts_anon_key():
+    def legacy_key(role):
+        header = base64.urlsafe_b64encode(b'{"alg":"HS256"}').decode().rstrip("=")
+        payload = base64.urlsafe_b64encode(
+            json.dumps({"role": role, "iss": "supabase"}).encode()
+        ).decode().rstrip("=")
+        return header + "." + payload + "." + "s" * 32
+    with pytest.raises(ValueError, match="privilegiada"):
+        SupabaseAuth(PROJECT, legacy_key("service_role"))
+    assert SupabaseAuth(PROJECT, legacy_key("anon")).auth_url.endswith("/auth/v1")
