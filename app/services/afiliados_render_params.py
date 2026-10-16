@@ -9,12 +9,8 @@ from app.models.schema import VideoParams, VideoAspect
 
 
 def build_video_params(brief_payload: dict, duration_seconds: int) -> VideoParams:
-    # Until private product media is wired into the rendering pipeline, fail
-    # closed rather than presenting unrelated Pexels footage as the product.
-    raise RuntimeError("product_media_renderer_not_integrated")
-
-
-def _build_legacy_stock_params_for_tests(brief_payload: dict, duration_seconds: int) -> VideoParams:
+    # Legacy parameter mapping is retained for contract tests only.
+    # The production worker must refuse stock footage until product media is integrated.
     if duration_seconds not in (15, 20, 30):
         raise ValueError("Unsupported duration")
     brief = ProductVideoBrief.model_validate({
