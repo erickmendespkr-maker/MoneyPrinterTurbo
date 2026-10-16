@@ -8,12 +8,15 @@ import os
 import subprocess
 import sys
 import threading
+import tempfile
 from pathlib import Path
 
 from loguru import logger
 
 from app.services.afiliados_backend import AfiliadosBackend
 from app.services.afiliados_render_params import build_video_params
+from app.services.afiliados_product_media import download_product_photos
+from app.utils import utils
 
 
 def _duration_seconds(file_path: Path) -> float:
@@ -43,7 +46,8 @@ def _require_product_media_integration() -> None:
     Keep this gate separate so orchestration tests can exercise the remaining
     worker lifecycle without implying product footage is production-ready.
     """
-    raise RuntimeError("product_media_renderer_not_integrated")
+    # The production path below must supply verified product files.
+    return None
 
 
 def process_one() -> bool:
@@ -64,9 +68,18 @@ def process_one() -> bool:
         from app.services import task as task_service
 
         # Prevent unrelated Pexels footage being published as a real product.
-        _require_product_media_integration()
-        params = build_video_params(job["brief"], job["duration_seconds"])
-        result = task_service.start(generation_id, params, stop_at="video")
+        source = job["brief"].get("source")
+        if not isinstance(source, dict) or source.get("mode") not in ("images", "both"):
+            raise RuntimeError("product_images_required")
+        with tempfile.TemporaryDirectory(prefix="afiliados_", dir=utils.storage_dir("local_videos", create=True)) as workdir:
+            photos = download_product_photos(backend, source, user_id, Path(workdir))
+            if not photos:
+                raise RuntimeError("product_images_required")
+            _require_product_media_integration()
+            params = build_video_params(job["brief"], job["duration_seconds"], [str(p) for p in photos])
+            if params.video_source != "local":
+                raise RuntimeError("stock_media_forbidden")
+            result = task_service.start(generation_id, params, stop_at="video")
         if not isinstance(result, dict):
             raise RuntimeError("render_failed")
         paths = result.get("videos") or []
