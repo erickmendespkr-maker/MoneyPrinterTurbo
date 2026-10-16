@@ -21,14 +21,15 @@ def test_success_uploads_and_finishes(tmp_path: Path):
         "generation_id": "job-123",
         "user_id": "user-123",
         "duration_seconds": 15,
-        "brief": {"product_name": "Mini aspirador"},
+        "brief": {"product_name": "Mini aspirador", "source": {"mode": "images", "image_paths": ["user-123/photo.jpg"]}},
     }
     backend.upload_video.return_value = "user-123/job-123.mp4"
     backend.finish.return_value = True
     with (
         patch.object(worker, "AfiliadosBackend", return_value=backend),
+        patch.object(worker, "download_product_photos", return_value=[tmp_path / "photo.jpg"]),
         patch.object(worker, "_require_product_media_integration"),
-        patch.object(worker, "build_video_params", return_value=MagicMock()),
+        patch.object(worker, "build_video_params", return_value=MagicMock(video_source="local")),
         patch("app.services.task.start", return_value={"videos": [str(output)]}),
         patch.object(worker, "_duration_seconds", return_value=15.1),
     ):
