@@ -25,6 +25,8 @@ class RenderJobStatus:
     status: str
     kind: str
     error_code: str | None
+    created_at: str | None = None
+    finished_at: str | None = None
 
 
 @dataclass(frozen=True)
@@ -53,6 +55,7 @@ class SupabaseVideoQuota:
             "affiliate_reserve_videos", "affiliate_complete_videos",
             "affiliate_release_videos", "affiliate_free_status", "affiliate_my_plan",
             "affiliate_enqueue_job", "affiliate_job_status",
+            "affiliate_my_jobs",
         ):
             raise ValueError("Operação de cota inválida")
         # This performs a live Auth /user check; no session token is trusted
@@ -115,6 +118,38 @@ class SupabaseVideoQuota:
             raise AuthServiceUnavailable("Resposta da fila inválida")
         return valid_id
 
+    @staticmethod
+    def _parse_job_status(result: object) -> RenderJobStatus:
+        if (not isinstance(result, dict) or not isinstance(result.get("id"), str)
+                or result.get("kind") not in ("video", "campaign")
+                or result.get("status") not in ("queued", "running", "completed", "failed")
+                or result.get("error_code") is not None
+                and (not isinstance(result.get("error_code"), str)
+                     or len(result["error_code"]) > 40)):
+            raise AuthServiceUnavailable("Resposta de trabalho inválida")
+        try:
+            job_id = str(UUID(result["id"]))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise AuthServiceUnavailable("ID de trabalho inválido") from exc
+        created_at = result.get("created_at")
+        finished_at = result.get("finished_at")
+        if any(t is not None and (not isinstance(t, str) or len(t) > 50)
+               for t in (created_at, finished_at)):
+            raise AuthServiceUnavailable("Datas de trabalho inválidas")
+        return RenderJobStatus(job_id, result["status"], result["kind"],
+                               result.get("error_code"), created_at, finished_at)
+
+    def list_jobs(self, access_token: str, limit: int = 10) -> list[RenderJobStatus]:
+        if type(limit) is not int or not 1 <= limit <= 20:
+            raise ValueError("Limite da listagem inválido")
+        result = self._rpc("affiliate_my_jobs", access_token, {"p_limit": limit})
+        if not isinstance(result, list) or len(result) > limit:
+            raise AuthServiceUnavailable("Lista de trabalhos inválida")
+        jobs = [self._parse_job_status(item) for item in result]
+        if len({job.id for job in jobs}) != len(jobs):
+            raise AuthServiceUnavailable("Trabalhos duplicados na resposta")
+        return jobs
+
     def job_status(self, access_token: str, job_id: str) -> RenderJobStatus:
         if not isinstance(job_id, str):
             raise ValueError("ID do trabalho inválido")
@@ -125,15 +160,10 @@ class SupabaseVideoQuota:
         result = self._rpc("affiliate_job_status", access_token, {
             "p_job_id": valid_id,
         })
-        if (not isinstance(result, dict) or result.get("id") != valid_id
-                or result.get("kind") not in ("video", "campaign")
-                or result.get("status") not in ("queued", "running", "completed", "failed")
-                or result.get("error_code") is not None
-                and (not isinstance(result.get("error_code"), str)
-                     or len(result["error_code"]) > 40)):
-            raise AuthServiceUnavailable("Resposta de trabalho inválida")
-        return RenderJobStatus(valid_id, result["status"], result["kind"],
-                               result.get("error_code"))
+        parsed = self._parse_job_status(result)
+        if parsed.id != valid_id:
+            raise AuthServiceUnavailable("Trabalho não corresponde ao solicitado")
+        return parsed
 
     def reserve(self, access_token: str, count: int = 1) -> list[str]:
         if type(count) is not int or not 1 <= count <= 3:
