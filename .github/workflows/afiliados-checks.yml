@@ -51,4 +51,4 @@ jobs:
         env:
           SUPABASE_URL: ""
           SUPABASE_SERVICE_ROLE_KEY: ""
-        run: pytest -q tests/test_afiliados_render_params.py tests/test_afiliados_worker.py
+        run: python -m pytest -q tests/test_afiliados_render_params.py tests/test_afiliados_worker.py
