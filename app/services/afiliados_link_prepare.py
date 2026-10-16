@@ -7,12 +7,17 @@ from app.services.afiliados_product_importer import preview_product_link
 from app.services.afiliados_marketplace_images import store_preview_image
 from app.services.afiliados_shopee_lookup import lookup_shopee_product
 from app.services.afiliados_product_importer import _platform
+from app.services.afiliados_shopee_api import ShopeeAffiliateError
+import requests
 
 def prepare_product_from_link(backend, user_id: str, url: str, shopee_api=None) -> dict:
     UUID(user_id)
     platform = _platform(url)
     if platform == 'shopee' and shopee_api is not None:
-        api_result = lookup_shopee_product(url, shopee_api)
+        try:
+            api_result = lookup_shopee_product(url, shopee_api)
+        except (ShopeeAffiliateError, requests.RequestException, ValueError, OSError):
+            api_result = {'status': 'api_unavailable'}
         if api_result['status'] == 'product_found' and api_result.get('image_url'):
             try:
                 path = store_preview_image(backend, user_id, api_result['image_url'])
