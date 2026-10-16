@@ -27,6 +27,7 @@ def test_success_uploads_and_finishes(tmp_path: Path):
     backend.finish.return_value = True
     with (
         patch.object(worker, "AfiliadosBackend", return_value=backend),
+        patch.object(worker, "_require_product_media_integration"),
         patch.object(worker, "build_video_params", return_value=MagicMock()),
         patch("app.services.task.start", return_value={"videos": [str(output)]}),
         patch.object(worker, "_duration_seconds", return_value=15.1),
@@ -104,3 +105,23 @@ def test_ffprobe_duration_parsing(tmp_path: Path):
         assert worker._duration_seconds(output) == 15.027
     assert run.call_args.kwargs["timeout"] == 30
     assert run.call_args.kwargs["check"] is True
+
+
+def test_real_worker_blocks_unrelated_stock_video():
+    backend = MagicMock()
+    backend.claim_next.return_value = {
+        "generation_id": "job-123",
+        "user_id": "user-123",
+        "duration_seconds": 15,
+        "brief": {"product_name": "Mini aspirador"},
+    }
+    with (
+        patch.object(worker, "AfiliadosBackend", return_value=backend),
+        patch("app.services.task.start") as render,
+    ):
+        assert worker.process_one() is False
+    render.assert_not_called()
+    backend.upload_video.assert_not_called()
+    backend.finish.assert_called_once_with(
+        "job-123", False, error_code="render_or_upload_failed"
+    )
