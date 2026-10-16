@@ -117,12 +117,17 @@ class SupabaseWorkerQueue:
             raise AuthServiceUnavailable("Resposta de lease inválida")
         return result
 
-    def finish(self, lease: WorkerLease, sha256: str) -> str:
+    def finish(self, lease: WorkerLease, sha256: str,
+               *, output_bytes: int, wall_ms: int) -> str:
         if not isinstance(sha256, str) or not SHA256.fullmatch(sha256):
             raise ValueError("Hash de saída inválido")
+        max_bytes = 367001600 if lease.kind == "campaign" else 104857600
+        if (type(output_bytes) is not int or not 12 <= output_bytes <= max_bytes
+                or type(wall_ms) is not int or not 0 <= wall_ms <= 21600000):
+            raise ValueError("Métricas de processamento inválidas")
         result = self._rpc("affiliate_worker_finish", {
             "p_job_id": lease.job_id, "p_lease_token": lease.lease_token,
-            "p_sha256": sha256,
+            "p_sha256": sha256, "p_output_bytes": output_bytes, "p_wall_ms": wall_ms,
         })
         expected = self.storage.object_key(lease.owner_id, lease.job_id, lease.kind)
         if result != expected:
