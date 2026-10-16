@@ -76,6 +76,7 @@ class RenderWorker:
         job = self.queue.claim()
         if job is None:
             return False
+        started_at = time.perf_counter()
         stop = threading.Event()
         lost = threading.Event()
 
@@ -112,8 +113,10 @@ class RenderWorker:
                 raise
             if lost.is_set():
                 raise WorkerLeaseLost("Lease não pôde ser renovada")
-            self.queue.finish(job, checksum)
-            LOG.info("Render job completed id=%s kind=%s", job.job_id, job.kind)
+            wall_ms = max(0, round((time.perf_counter() - started_at) * 1000))
+            self.queue.finish(job, checksum, output_bytes=len(output), wall_ms=wall_ms)
+            LOG.info("Render job completed id=%s kind=%s bytes=%d wall_ms=%d",
+                     job.job_id, job.kind, len(output), wall_ms)
         except Exception:
             # Do not log exception string: upstream encoders sometimes include
             # sensitive filenames, remote URLs, or customer-authored scripts.
