@@ -48,3 +48,20 @@ def test_authenticated_shopee_api_photo_preferred():
     assert result["source"]["image_paths"] == [uid + "/api.jpg"]
     lookup.assert_called_once()
     html_preview.assert_not_called()
+
+def test_shopee_api_failure_uses_public_metadata_fallback():
+    from app.services.afiliados_shopee_api import ShopeeAffiliateError
+    uid = str(uuid4())
+    url = "https://s.shopee.com.br/60SPo2qmRw"
+    preview = ProductLinkPreview(platform="shopee", original_url=url,
+        resolved_url="https://shopee.com.br/product/123/456",
+        title="Produto real", image_url="https://cf.shopee.com.br/real.jpg")
+    with (
+        patch("app.services.afiliados_link_prepare.lookup_shopee_product",
+              side_effect=ShopeeAffiliateError("API rejected request")),
+        patch("app.services.afiliados_link_prepare.preview_product_link", return_value=preview),
+        patch("app.services.afiliados_link_prepare.store_preview_image", return_value=uid + "/photo.jpg"),
+    ):
+        result = prepare_product_from_link(MagicMock(), uid, url, shopee_api=MagicMock())
+    assert result["status"] == "ready_for_review"
+    assert result["product_name"] == "Produto real"
