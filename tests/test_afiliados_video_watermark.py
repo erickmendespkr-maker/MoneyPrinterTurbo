@@ -43,3 +43,28 @@ def test_watermark_on_synthetic_mp4(tmp_path: Path):
         capture_output=True, text=True, check=True, timeout=20
     )
     assert abs(float(probe.stdout.strip()) - 2) < 0.3
+
+def test_watermark_changes_corner_not_center(tmp_path: Path):
+    import shutil
+    import subprocess
+    from PIL import Image
+    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+        pytest.skip("ffmpeg tools unavailable")
+    sample = tmp_path / "product.mp4"
+    subprocess.run(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+         "-f", "lavfi", "-i", "color=c=black:s=720x1280:r=8:d=1",
+         "-c:v", "libx264", "-pix_fmt", "yuv420p", str(sample)],
+        check=True, timeout=60
+    )
+    branded = apply_plan_watermark(sample, "pro")
+    frame = tmp_path / "frame.png"
+    subprocess.run(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+         "-i", str(branded), "-frames:v", "1", str(frame)],
+        check=True, timeout=30
+    )
+    with Image.open(frame) as image:
+        assert max(image.convert("RGB").getpixel((360, 500))) < 20
+        corner = image.crop((400, 1050, 720, 1280)).convert("L")
+        assert corner.getextrema()[1] >= 20
