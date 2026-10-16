@@ -2,13 +2,19 @@
 
 This mapper is deliberately independent of task execution. The underlying
 pipeline does not guarantee exact final duration; output must be probed before
-publishing. Product-specific media upload is not supported here yet.
+publishing. Product-specific media upload is not supported here yet. Never render unrelated stock footage as a product demonstration.
 """
 from app.models.afiliados_brief import ProductVideoBrief
 from app.models.schema import VideoParams, VideoAspect
 
 
 def build_video_params(brief_payload: dict, duration_seconds: int) -> VideoParams:
+    # Until private product media is wired into the rendering pipeline, fail
+    # closed rather than presenting unrelated Pexels footage as the product.
+    raise RuntimeError("product_media_renderer_not_integrated")
+
+
+def _build_legacy_stock_params_for_tests(brief_payload: dict, duration_seconds: int) -> VideoParams:
     if duration_seconds not in (15, 20, 30):
         raise ValueError("Unsupported duration")
     brief = ProductVideoBrief.model_validate({
