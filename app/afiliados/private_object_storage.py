@@ -118,9 +118,11 @@ class PrivateObjectStorage:
         return result
 
     @staticmethod
-    def _path(key: str) -> str:
-        # Generated keys contain only canonical UUIDs and fixed file names.
-        return "/object/" + urllib.parse.quote(BUCKET_NAME, safe="") + "/" + urllib.parse.quote(key, safe="/")
+    def _path(key: str, *, authenticated: bool = False) -> str:
+        # Private reads explicitly require authenticated storage route.
+        # Uploads use /object/{bucket}/{path}, as required by Storage API.
+        prefix = "/object/authenticated/" if authenticated else "/object/"
+        return prefix + urllib.parse.quote(BUCKET_NAME, safe="") + "/" + urllib.parse.quote(key, safe="/")
 
     def stage_input(self, access_token: str, job_id: str, package: bytes) -> str:
         """Call from authenticated backend; never expose the service role key."""
@@ -136,7 +138,7 @@ class PrivateObjectStorage:
 
     def fetch_input(self, owner_id: str, job_id: str) -> bytes:
         key = self.object_key(owner_id, job_id, "input")
-        return self._request("GET", self._path(key),
+        return self._request("GET", self._path(key, authenticated=True),
                              max_result=MAX_BUNDLE_INPUT_BYTES)
 
     def put_output(self, owner_id: str, job_id: str, kind: str, data: bytes) -> tuple[str, str]:
