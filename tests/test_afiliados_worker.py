@@ -47,11 +47,12 @@ def test_duration_mismatch_marks_failure(tmp_path: Path):
         "generation_id": "job-123",
         "user_id": "user-123",
         "duration_seconds": 15,
-        "brief": {"product_name": "Mini aspirador"},
+        "brief": {"product_name": "Mini aspirador", "source": {"mode": "images", "image_paths": ["user-123/photo.jpg"]}},
     }
     with (
         patch.object(worker, "AfiliadosBackend", return_value=backend),
-        patch.object(worker, "build_video_params", return_value=MagicMock()),
+        patch.object(worker, "download_product_photos", return_value=[tmp_path / "photo.jpg"]),
+        patch.object(worker, "build_video_params", return_value=MagicMock(video_source="local")),
         patch("app.services.task.start", return_value={"videos": [str(output)]}),
         patch.object(worker, "_duration_seconds", return_value=22.0),
     ):
@@ -83,12 +84,13 @@ def test_upload_failure_marks_job_failed(tmp_path: Path):
         "generation_id": "job-123",
         "user_id": "user-123",
         "duration_seconds": 15,
-        "brief": {"product_name": "Mini aspirador"},
+        "brief": {"product_name": "Mini aspirador", "source": {"mode": "images", "image_paths": ["user-123/photo.jpg"]}},
     }
     backend.upload_video.side_effect = OSError("storage unavailable")
     with (
         patch.object(worker, "AfiliadosBackend", return_value=backend),
-        patch.object(worker, "build_video_params", return_value=MagicMock()),
+        patch.object(worker, "download_product_photos", return_value=[tmp_path / "photo.jpg"]),
+        patch.object(worker, "build_video_params", return_value=MagicMock(video_source="local")),
         patch("app.services.task.start", return_value={"videos": [str(output)]}),
         patch.object(worker, "_duration_seconds", return_value=15.0),
     ):
