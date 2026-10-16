@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 SITE_KEY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{3,128}$")
-HOST_PATTERN = re.compile(r"^(?:[a-z0-9-]+\\.)+[a-z0-9-]+$", re.IGNORECASE)
+HOST_PATTERN = re.compile(r"^(?:[a-z0-9-]+\.)+[a-z0-9-]+$", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
