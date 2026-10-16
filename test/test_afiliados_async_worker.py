@@ -1,4 +1,6 @@
 """Asynchronous rendering tests with fake queues/storage and no paid APIs."""
+import io
+import zipfile
 from uuid import uuid4
 
 import pytest
@@ -153,7 +155,10 @@ def test_queued_creator_package_uses_three_output_videos():
     received = []
     def bundler(images, product, duration, script, audio, ext, *, plan, watermark):
         received.append((plan, watermark))
-        return b"fake-zip-from-test"
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as archive:
+            archive.writestr("videos/impacto.mp4", MP4)
+        return buffer.getvalue()
     assert RenderWorker(queue, store, bundler=bundler, heartbeat_seconds=5).run_once()
     assert received == [("creator", False)]
     assert store.outputs[-1][1] == "campaign"
