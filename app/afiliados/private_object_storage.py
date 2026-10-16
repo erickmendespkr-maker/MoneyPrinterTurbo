@@ -160,20 +160,20 @@ class PrivateObjectStorage:
         return key, hashlib.sha256(data).hexdigest()
 
     def signed_result_url(self, access_token: str, job_id: str,
-                          job_status: dict, expires_in: int = 60) -> str:
-        """Caller must first fetch job_status from an owner-scoped server RPC.
+                          quotas, expires_in: int = 60) -> str:
+        """Verify ownership via a live authenticated RPC before signing.
 
-        Reject arbitrary dictionaries from HTTP input. Use only objects from
-        the authenticated quota.job_status method in the server backend.
+        No caller-provided status, owner ID or object path is accepted.
         """
+        from app.afiliados.production_quota import SupabaseVideoQuota
+        if not isinstance(quotas, SupabaseVideoQuota):
+            raise AuthDenied("Consulta de trabalho obrigatória")
         identity = self.auth.require_verified_user(access_token)
-        if (not isinstance(job_status, dict)
-                or job_status.get("id") != _uuid(job_id)
-                or job_status.get("status") != "completed"
-                or job_status.get("kind") not in ("video", "campaign")
-                or type(expires_in) is not int or not 1 <= expires_in <= 120):
+        status = quotas.job_status(access_token, job_id)
+        if (status.status != "completed" or
+                type(expires_in) is not int or not 1 <= expires_in <= 120):
             raise AuthDenied("Arquivo não disponível")
-        key = self.object_key(identity.owner_id, job_id, job_status["kind"])
+        key = self.object_key(identity.owner_id, job_id, status.kind)
         endpoint = "/object/sign/" + BUCKET_NAME + "/" + key
         raw = self._request("POST", endpoint,
                             json.dumps({"expiresIn": expires_in}).encode("ascii"))
