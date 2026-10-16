@@ -35,7 +35,7 @@ def prepare_product_from_link(backend, user_id: str, url: str, shopee_api=None) 
         return {
             "status": "manual_images_required",
             "platform": preview.platform,
-            "product_url": preview.original_url,
+            "product_url": preview.resolved_url,
             "product_name": preview.title,
             "description": preview.description,
             "source": None,
@@ -57,5 +57,5 @@ def prepare_product_from_link(backend, user_id: str, url: str, shopee_api=None) 
         "product_url": preview.original_url,
         "product_name": preview.title,
         "description": preview.description,
-        "source": {"mode": "both", "product_url": preview.original_url, "image_paths": [path]},
+        "source": {"mode": "both", "product_url": preview.resolved_url, "image_paths": [path]},
     }
