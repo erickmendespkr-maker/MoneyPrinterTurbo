@@ -166,7 +166,7 @@ class PrivateObjectStorage:
         No caller-provided status, owner ID or object path is accepted.
         """
         from app.afiliados.production_quota import SupabaseVideoQuota
-        if not isinstance(quotas, SupabaseVideoQuota):
+        if not isinstance(quotas, SupabaseVideoQuota) or quotas.auth is not self.auth:
             raise AuthDenied("Consulta de trabalho obrigatória")
         identity = self.auth.require_verified_user(access_token)
         status = quotas.job_status(access_token, job_id)
