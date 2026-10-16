@@ -29,3 +29,22 @@ def test_missing_image_requires_manual_upload():
         result = prepare_product_from_link(MagicMock(), uid, preview.original_url)
     assert result["status"] == "manual_images_required"
     assert result["source"] is None
+
+def test_authenticated_shopee_api_photo_preferred():
+    uid = str(uuid4())
+    url = "https://s.shopee.com.br/60SPo2qmRw"
+    api_result = {
+        "status": "product_found", "resolved_url": "https://shopee.com.br/product/123/456",
+        "title": "Produto da API", "image_url": "https://cf.shopee.com.br/real.jpg",
+    }
+    with (
+        patch("app.services.afiliados_link_prepare.lookup_shopee_product", return_value=api_result) as lookup,
+        patch("app.services.afiliados_link_prepare.store_preview_image", return_value=uid + "/api.jpg"),
+        patch("app.services.afiliados_link_prepare.preview_product_link") as html_preview,
+    ):
+        result = prepare_product_from_link(MagicMock(), uid, url, shopee_api=MagicMock())
+    assert result["status"] == "ready_for_review"
+    assert result["product_name"] == "Produto da API"
+    assert result["source"]["image_paths"] == [uid + "/api.jpg"]
+    lookup.assert_called_once()
+    html_preview.assert_not_called()
