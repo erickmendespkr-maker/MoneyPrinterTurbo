@@ -93,6 +93,7 @@ def test_upload_failure_marks_job_failed(tmp_path: Path):
     with (
         patch.object(worker, "AfiliadosBackend", return_value=backend),
         patch.object(worker, "download_product_photos", return_value=[tmp_path / "photo.jpg"]),
+        patch.object(worker, "apply_plan_watermark", side_effect=lambda p, plan: p),
         patch.object(worker, "build_video_params", return_value=MagicMock(video_source="local")),
         patch("app.services.task.start", return_value={"videos": [str(output)]}),
         patch.object(worker, "_duration_seconds", return_value=15.0),
