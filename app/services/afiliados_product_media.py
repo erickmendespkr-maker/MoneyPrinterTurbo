@@ -35,7 +35,7 @@ def download_product_photos(backend, payload: dict, user_id: str, destination: P
     try:
         for storage_path in paths:
             response = backend.session.get(
-                f"{backend.url}/storage/v1/object/product-images/{quote(storage_path, safe="/")}",
+                f"{backend.url}/storage/v1/object/product-images/{quote(storage_path, safe='/')}",
                 stream=True,
                 timeout=(10, 45),
             )
