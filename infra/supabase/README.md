@@ -95,3 +95,26 @@ tetos são iniciais e precisarão de calibragem conforme custo e demanda.
 - A verificação anti-bot não garante identidade única; múltiplos e-mails
   permanecem possíveis. Limitar o plano Grátis pelo custo global e pelo
   cooldown individual evita promessas de bloqueio absoluto.
+
+## Interface de contas para beta (opt-in)
+
+Foi criada uma visualização beta na página Streamlit Afiliados com:
+cadastro protegido por Turnstile, login Supabase, recuperação de senha
+pelo provedor, atualização/validação da sessão, logout, consulta do plano
+no banco e indicação da cota gratuita de 24 horas. A experiência pública
+de criação, cobrança e processamento **permanece desativada**.
+
+Depois de configurar o projeto de testes e aplicar a migração, a variável
+`AFILIADOS_PUBLIC_AUTH_BETA=1` habilita **somente** essa visualização.
+Não combinar com `AFILIADOS_LOCAL_ACCOUNTS=1`. Sem as variáveis
+do Supabase e do Turnstile, o modo beta falha de forma fechada. Sessões
+ficam apenas no estado temporário do Streamlit; antes da produção,
+implementar cookies de sessão seguros (HttpOnly, Secure, SameSite),
+proteção de sessão/revogação e um backend apropriado. O modo beta não
+é autorização para publicar a plataforma para usuários reais.
+
+O endpoint `GET /auth/v1/user` é chamado no servidor para verificar
+a identidade e o e-mail confirmado. O plano e as cotas são consultados
+nas RPCs em PostgreSQL, e não em cookies ou campos fornecidos pelo
+usuário. Na tela beta o contador exibe o estado devolvido pelo banco;
+a atualização ainda depende de nova leitura da página.
