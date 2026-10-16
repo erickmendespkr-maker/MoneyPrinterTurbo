@@ -30,7 +30,20 @@ class ProductionJobService:
         if kind not in ("video", "campaign") or variant not in (
                 "impacto", "beneficio", "curiosidade"):
             raise ValueError("Tipo de anúncio inválido")
-        # Construct safe, bounded inputs *before* network/storage usage.
+        # Reject known quota/plan violations BEFORE uploading costly media.
+        # This is only a preflight: the enqueue RPC remains the atomic authority.
+        from app.afiliados.plans import get_plan_policy, require_feature
+        plan = self.quotas.plan(access_token)
+        policy = get_plan_policy(plan)
+        if kind == "campaign":
+            require_feature(plan, "campaign")
+            if variant != "impacto":
+                raise PermissionError("Versão indisponível neste plano")
+        elif variant != "impacto" and policy.videos_per_ad == 1:
+            raise PermissionError("Versão indisponível neste plano")
+        if plan == "gratis" and not self.quotas.free_status(access_token).can_generate:
+            raise PermissionError("Aguarde a liberação da próxima geração gratuita")
+        # Construct safe, bounded inputs *before* paying for network/storage.
         package = pack_inputs(images, product_name, duration, script, audio, audio_extension)
         job_id = str(uuid4())
         self.storage.stage_input(access_token, job_id, package)
