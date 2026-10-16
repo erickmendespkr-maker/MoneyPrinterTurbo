@@ -39,10 +39,12 @@ jobs:
           python -m py_compile app/services/afiliados_product_media.py
           python -m py_compile app/services/afiliados_render_params.py
           python -m py_compile app/services/afiliados_worker.py
+          python -m py_compile app/services/afiliados_video_watermark.py
+          python -m py_compile tests/test_afiliados_video_watermark.py
           python -m py_compile tests/test_afiliados_render_params.py
           python -m py_compile tests/test_afiliados_worker.py
           python -m py_compile tests/test_afiliados_product_media.py
-          python -m py_compile tests/test_afiliados_product_source.py tests/test_afiliados_plan_reconciliation.py tests/test_afiliados_product_media.py
+          python -m py_compile tests/test_afiliados_product_source.py tests/test_afiliados_plan_reconciliation.py tests/test_afiliados_product_media.py tests/test_afiliados_video_watermark.py
 
   contract-tests:
     runs-on: ubuntu-latest
