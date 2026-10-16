@@ -189,3 +189,20 @@ def test_global_free_render_pool_limits_multiple_accounts(tmp_path, monkeypatch)
     clock[0] += 3601
     assert quota.free_status("account_3").can_generate
     assert quota.reserve("account_3", "gratis")
+
+
+def test_global_daily_budget_blocks_multi_account_exhaustion(tmp_path, monkeypatch):
+    clock = [1800000000]
+    monkeypatch.setattr(module, "_now", lambda: clock[0])
+    monkeypatch.setattr(module, "MAX_GLOBAL_FREE_ATTEMPTS_PER_HOUR", 100)
+    monkeypatch.setattr(module, "MAX_GLOBAL_FREE_ATTEMPTS_PER_DAY", 2)
+    quota = VideoQuota(tmp_path / "quota.sqlite")
+    for owner in ("account_a", "account_b"):
+        quota.release(owner, quota.reserve(owner, "gratis"))
+    assert quota.free_status("account_c").capacity_retry_seconds == 86400
+    with pytest.raises(PermissionError, match="Capacidade gratuita"):
+        quota.reserve("account_c", "gratis")
+    clock[0] += 3601  # Hourly window passes, daily budget still protects resources
+    assert not quota.free_status("account_c").can_generate
+    clock[0] += 86400 - 3601 + 1
+    assert quota.free_status("account_c").can_generate
