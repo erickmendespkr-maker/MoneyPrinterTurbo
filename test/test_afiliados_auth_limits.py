@@ -23,3 +23,13 @@ def test_reset_request_limit_for_existing_and_unknown_accounts(tmp_path):
     for email in ("user@example.com", "unknown@example.com"):
         with pytest.raises(ValueError, match="Muitas tentativas"):
             auth.create_reset_token(email)
+
+
+def test_duplicate_registration_attempts_are_throttled(tmp_path):
+    auth = LocalAuth(tmp_path / "auth.sqlite")
+    auth.register("user@example.com", "a secure long password")
+    for _ in range(2):
+        with pytest.raises(ValueError, match="Não foi possível criar"):
+            auth.register("user@example.com", "a secure long password")
+    with pytest.raises(ValueError, match="Muitas tentativas"):
+        auth.register("user@example.com", "a secure long password")
