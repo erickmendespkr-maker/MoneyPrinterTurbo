@@ -67,6 +67,12 @@ class LocalAuth:
 
     def register(self, email: str, password: str) -> str:
         email = self._credentials(email, password)
+        # Count requests BEFORE expensive password derivation; persist attempts
+        # even if an email is already registered. Production edge rate limits
+        # and Turnstile must supplement this per-address control.
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            enforce_limit(db, "register", email, maximum=3, window=3600)
         salt = secrets.token_bytes(16)
         owner_id = secrets.token_hex(16)
         digest = self._derive(password, salt)
