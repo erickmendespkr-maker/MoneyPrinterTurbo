@@ -75,3 +75,8 @@ class AfiliadosBackend:
         """Claim one queued job atomically, or return None if queue is empty."""
         jobs = self._rpc("worker_claim_next_generation", {})
         return jobs[0] if jobs else None
+    def heartbeat(self, generation_id: str) -> bool:
+        """Refresh processing activity to prevent a healthy job timing out."""
+        return bool(self._rpc("worker_heartbeat_generation", {
+            "p_generation_id": generation_id,
+        }))
