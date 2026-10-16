@@ -19,3 +19,27 @@ def test_paid_plans_do_not_transcode(tmp_path: Path):
         assert apply_plan_watermark(missing, "premium") == missing
         assert apply_plan_watermark(missing, "creator") == missing
     run.assert_not_called()
+
+def test_watermark_on_synthetic_mp4(tmp_path: Path):
+    import shutil
+    import subprocess
+    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+        pytest.skip("ffmpeg tools unavailable")
+    sample = tmp_path / "sample.mp4"
+    subprocess.run(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+         "-f", "lavfi", "-i", "color=c=blue:s=320x568:r=12:d=2",
+         "-c:v", "libx264", "-pix_fmt", "yuv420p", str(sample)],
+        check=True, timeout=45
+    )
+    result = apply_plan_watermark(sample, "free")
+    assert result != sample
+    assert result.is_file()
+    assert result.stat().st_size > 0
+    assert not list(tmp_path.glob("*_brand_overlay.png"))
+    probe = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", str(result)],
+        capture_output=True, text=True, check=True, timeout=20
+    )
+    assert abs(float(probe.stdout.strip()) - 2) < 0.3
