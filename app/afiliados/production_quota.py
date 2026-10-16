@@ -43,7 +43,7 @@ class SupabaseVideoQuota:
     def _rpc(self, name: str, bearer: str, payload: dict) -> object:
         if name not in (
             "affiliate_reserve_videos", "affiliate_complete_videos",
-            "affiliate_release_videos", "affiliate_free_status",
+            "affiliate_release_videos", "affiliate_free_status", "affiliate_my_plan",
         ):
             raise ValueError("Operação de cota inválida")
         # This performs a live Auth /user check; no session token is trusted
@@ -80,6 +80,14 @@ class SupabaseVideoQuota:
         except (ValueError, UnicodeDecodeError) as exc:
             raise AuthServiceUnavailable("Resposta de cota inválida") from exc
 
+    def plan(self, access_token: str) -> str:
+        """Plan is fetched from privileged billing data, never request metadata."""
+        from app.afiliados.plans import PLANS
+        plan = self._rpc("affiliate_my_plan", access_token, {})
+        if not isinstance(plan, str) or plan not in PLANS:
+            raise AuthServiceUnavailable("Plano inválido no servidor")
+        return plan
+
     def reserve(self, access_token: str, count: int = 1) -> list[str]:
         if type(count) is not int or not 1 <= count <= 3:
             raise ValueError("Quantidade inválida")
@@ -95,6 +103,7 @@ class SupabaseVideoQuota:
     @staticmethod
     def _ids(reservation_ids: list[str]) -> list[str]:
         if (not isinstance(reservation_ids, list) or not 1 <= len(reservation_ids) <= 3
+                or any(not isinstance(item, str) for item in reservation_ids)
                 or len(set(reservation_ids)) != len(reservation_ids)):
             raise ValueError("Reservas inválidas")
         try:
