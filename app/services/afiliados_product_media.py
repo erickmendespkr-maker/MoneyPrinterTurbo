@@ -5,6 +5,7 @@ the browser. No arbitrary URLs, signed URLs or filesystem paths are accepted.
 """
 from pathlib import Path
 from uuid import UUID, uuid4
+from urllib.parse import quote
 from io import BytesIO
 
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -20,6 +21,10 @@ def validate_product_paths(payload: dict, user_id: str) -> list[str]:
     validate_image_ownership(source, user_id)
     if not source.image_paths:
         raise ValueError("Product photos are required for image-based rendering")
+    for path in source.image_paths:
+        filename = path.split("/", 1)[1]
+        if not filename or any(ch in filename for ch in ("?", "#", "%", "\\x00")):
+            raise ValueError("Unsafe product image filename")
     return source.image_paths
 
 def download_product_photos(backend, payload: dict, user_id: str, destination: Path) -> list[Path]:
@@ -30,7 +35,7 @@ def download_product_photos(backend, payload: dict, user_id: str, destination: P
     try:
         for storage_path in paths:
             response = backend.session.get(
-                f"{backend.url}/storage/v1/object/product-images/{storage_path}",
+                f"{backend.url}/storage/v1/object/product-images/{quote(storage_path, safe="/")}",
                 stream=True,
                 timeout=(10, 45),
             )
