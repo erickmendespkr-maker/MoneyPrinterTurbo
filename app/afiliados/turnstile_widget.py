@@ -70,6 +70,7 @@ def registration_challenge(site_key: str, nonce: int) -> str | None:
     result = renderer(
         key=key, data={"site_key": site_key, "completed": completed},
         default={"token": ""},
+        on_token_change=lambda: None,
     )
     token = result.get("token") if result else None
     return token if isinstance(token, str) and token else None
