@@ -1,0 +1,54 @@
+name: Afiliados Creator checks
+
+on:
+  push:
+    branches: [feature/afiliados]
+    paths:
+      - "app/models/afiliados_brief.py"
+      - "app/services/afiliados_*.py"
+      - "tests/test_afiliados_*.py"
+      - ".github/workflows/afiliados-checks.yml"
+  pull_request:
+    paths:
+      - "app/models/afiliados_brief.py"
+      - "app/services/afiliados_*.py"
+      - "tests/test_afiliados_*.py"
+      - ".github/workflows/afiliados-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile Afiliados modules and tests
+        run: |
+          python -m py_compile app/models/afiliados_brief.py
+          python -m py_compile app/services/afiliados_backend.py
+          python -m py_compile app/services/afiliados_render_params.py
+          python -m py_compile app/services/afiliados_worker.py
+          python -m py_compile tests/test_afiliados_render_params.py
+          python -m py_compile tests/test_afiliados_worker.py
+
+  contract-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test and application dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+      - name: Run Afiliados unit tests without production credentials
+        env:
+          SUPABASE_URL: ""
+          SUPABASE_SERVICE_ROLE_KEY: ""
+        run: pytest -q tests/test_afiliados_render_params.py tests/test_afiliados_worker.py
