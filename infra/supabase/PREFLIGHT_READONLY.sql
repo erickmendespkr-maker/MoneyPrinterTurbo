@@ -15,11 +15,11 @@ SELECT
 -- 2. The private schema must not be usable by public-facing roles.
 SELECT
   rolname AS role_name,
-  has_schema_privilege(rolname, 'affiliate_private', 'USAGE')
-    AS has_private_schema_usage
+  CASE WHEN to_regnamespace('affiliate_private') IS NULL THEN NULL
+       ELSE has_schema_privilege(rolname, to_regnamespace('affiliate_private'), 'USAGE')
+  END AS has_private_schema_usage
 FROM pg_roles
 WHERE rolname IN ('anon', 'authenticated', 'service_role')
-  AND to_regnamespace('affiliate_private') IS NOT NULL
 ORDER BY rolname;
 
 -- 3. No public-facing role may directly complete a video reservation.
