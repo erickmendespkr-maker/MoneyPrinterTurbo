@@ -24,6 +24,9 @@ FREE_COOLDOWN_SECONDS = 24 * 60 * 60
 RESERVATION_TTL_SECONDS = 6 * 60 * 60
 FREE_ATTEMPT_WINDOW_SECONDS = 60 * 60
 FREE_MAX_RENDER_ATTEMPTS = 5
+# Protect shared compute even when someone creates multiple free accounts.
+# Local SQLite limit; public launch requires one centralized quota database.
+MAX_GLOBAL_FREE_ATTEMPTS_PER_HOUR = 60
 
 
 def _now() -> int:
@@ -39,10 +42,12 @@ class FreeQuotaStatus:
     remaining_seconds: int
     in_progress: bool
     attempt_retry_seconds: int = 0
+    capacity_retry_seconds: int = 0
 
     @property
     def can_generate(self) -> bool:
-        return not self.in_progress and self.remaining_seconds == 0 and self.attempt_retry_seconds == 0
+        return (not self.in_progress and self.remaining_seconds == 0
+                and self.attempt_retry_seconds == 0 and self.capacity_retry_seconds == 0)
 
 
 class VideoQuota:
@@ -111,8 +116,16 @@ class VideoQuota:
         attempts, first_attempt = attempt_row
         retry = (max(0, int(first_attempt) + FREE_ATTEMPT_WINDOW_SECONDS - now)
                  if attempts >= FREE_MAX_RENDER_ATTEMPTS else 0)
-        return FreeQuotaStatus(remaining_seconds=remaining, in_progress=pending,
-                               attempt_retry_seconds=retry)
+        global_attempts, earliest = db.execute(
+            """SELECT COUNT(*), MIN(started_at) FROM affiliate_free_render_attempts
+            WHERE started_at>?""", (now - FREE_ATTEMPT_WINDOW_SECONDS,)
+        ).fetchone()
+        pool_wait = (max(0, int(earliest) + FREE_ATTEMPT_WINDOW_SECONDS - now)
+                     if global_attempts >= MAX_GLOBAL_FREE_ATTEMPTS_PER_HOUR else 0)
+        return FreeQuotaStatus(
+            remaining_seconds=remaining, in_progress=pending,
+            attempt_retry_seconds=retry, capacity_retry_seconds=pool_wait,
+        )
 
     def free_status(self, owner_id: str) -> FreeQuotaStatus:
         """Read status from persistent server state, never browser cookies."""
@@ -142,6 +155,8 @@ class VideoQuota:
                     raise PermissionError("Limite gratuito: aguarde 24 horas após a última geração concluída")
                 if status.attempt_retry_seconds > 0:
                     raise PermissionError("Muitas tentativas de geração gratuita. Tente novamente mais tarde.")
+                if status.capacity_retry_seconds > 0:
+                    raise PermissionError("Capacidade gratuita temporariamente esgotada. Tente novamente mais tarde.")
                 db.execute("DELETE FROM affiliate_free_render_attempts WHERE started_at<=?",
                            (now - FREE_ATTEMPT_WINDOW_SECONDS,))
                 db.execute("INSERT INTO affiliate_free_render_attempts VALUES (?,?)", (owner_id, now))
