@@ -144,3 +144,35 @@ de `storage.objects` antes de utilizar um projeto Supabase compartilhado.
 Os testes unitários e estáticos no GitHub não equivalem a um teste
 completo de produção. **Não implantar para clientes sem a validação
 e o hardening acima.**
+
+## Acompanhamento e custo por geração (preparado)
+
+A função `public.affiliate_my_jobs(p_limit)` lista somente os últimos
+trabalhos do usuário autenticado, com limite de 20 resultados e sem expor
+chaves de objetos, tokens ou credenciais. A interface beta utiliza essa
+listagem para exibir o andamento e atualizar os dados sob demanda.
+**A interface ainda não envia solicitações de vídeo em produção.**
+
+Ao concluir um trabalho, o trabalhador armazena `worker_wall_ms`
+(duração de execução medida no trabalhador) e `output_bytes` (tamanho
+da saída). Esses números são confirmados na mesma transação que atualiza
+a cota; não são aceitos do navegador. Os dados são indicadores de
+capacidade, não uma fatura de infraestrutura nem medição precisa de CPU.
+
+Um arquivo de consultas somente para administradores,
+`ADMIN_METRICS.sql`, calcula média de tempo por trabalho, quantidade de
+vídeos efetivamente concluídos, tamanho total dos arquivos e taxa de
+falhas. Para estimar o custo por vídeo, será necessário acrescentar
+o preço real do servidor, créditos de IA, transferências, retenção,
+impostos e tarifas do gateway. O custo operacional final não deve
+ser inferido apenas pelos segundos de renderização.
+
+A rota de **leitura do bucket privado** é
+`GET /storage/v1/object/authenticated/<bucket>/<arquivo>`, com a
+autorização do serviço; uploads continuam na rota
+`POST /storage/v1/object/<bucket>/<arquivo>`.
+
+Para testar num ambiente real, precisamos de um projeto Supabase de
+desenvolvimento escolhido pelo proprietário e credenciais configuradas
+apenas em segredo de servidor. Não reutilizar automaticamente o banco
+de outros aplicativos.
