@@ -156,3 +156,15 @@ def test_owner_and_job_id_path_traversal_rejected():
             PrivateObjectStorage.object_key(candidate, JOB, "input")
     with pytest.raises(ValueError):
         PrivateObjectStorage.object_key(OWNER, "../job", "video")
+
+
+def test_private_input_download_requires_authenticated_storage_route():
+    package = pack_inputs([b"photo"], "Produto", 15, "Roteiro")
+    store = storage(package)
+    assert store.fetch_input(OWNER, JOB) == package
+    request = store._opener.requests[0]
+    assert request.get_method() == "GET"
+    assert request.full_url.endswith(
+        f"/storage/v1/object/authenticated/{BUCKET_NAME}/{OWNER}/{JOB}/input.zip"
+    )
+    assert request.get_header("Authorization").startswith("Bearer ")
