@@ -70,3 +70,8 @@ class AfiliadosBackend:
         return int(self._rpc("worker_fail_stale_generations", {
             "p_older_than_minutes": older_than_minutes,
         }))
+
+    def claim_next(self):
+        """Claim one queued job atomically, or return None if queue is empty."""
+        jobs = self._rpc("worker_claim_next_generation", {})
+        return jobs[0] if jobs else None
