@@ -2,7 +2,6 @@
 import base64
 import io
 import json
-import urllib.error
 import zipfile
 from uuid import uuid4
 
