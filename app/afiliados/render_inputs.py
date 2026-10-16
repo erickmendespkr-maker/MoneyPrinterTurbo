@@ -92,11 +92,13 @@ def unpack_inputs(package: bytes) -> RenderInputs:
             if meta.file_size > MAX_MANIFEST_BYTES:
                 raise ValueError("Metadados acima do limite")
             manifest = json.loads(archive.read("manifest.json", pwd=None))
-            if not isinstance(manifest, dict) or set(manifest) != {
+            if (not isinstance(manifest, dict) or set(manifest) != {
                 "version", "product_name", "duration", "script",
                 "photos", "audio_extension",
-            } or type(manifest["photos"]) is not int or manifest["version"] != 1
-               or not 1 <= manifest["photos"] <= MAX_IMAGES):
+            } or type(manifest["photos"]) is not int
+                    or type(manifest["version"]) is not int
+                    or manifest["version"] != 1
+                    or not 1 <= manifest["photos"] <= MAX_IMAGES):
                 raise ValueError("Manifesto de vídeo inválido")
             total = manifest["photos"]
             has_audio = manifest["audio_extension"] is not None
