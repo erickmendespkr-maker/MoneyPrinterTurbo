@@ -26,7 +26,8 @@ FREE_ATTEMPT_WINDOW_SECONDS = 60 * 60
 FREE_MAX_RENDER_ATTEMPTS = 5
 # Protect shared compute even when someone creates multiple free accounts.
 # Local SQLite limit; public launch requires one centralized quota database.
-MAX_GLOBAL_FREE_ATTEMPTS_PER_HOUR = 60
+MAX_GLOBAL_FREE_ATTEMPTS_PER_HOUR = 12
+MAX_GLOBAL_FREE_ATTEMPTS_PER_DAY = 40
 
 
 def _now() -> int:
@@ -122,6 +123,13 @@ class VideoQuota:
         ).fetchone()
         pool_wait = (max(0, int(earliest) + FREE_ATTEMPT_WINDOW_SECONDS - now)
                      if global_attempts >= MAX_GLOBAL_FREE_ATTEMPTS_PER_HOUR else 0)
+        daily_count, earliest_daily = db.execute(
+            """SELECT COUNT(*), MIN(started_at) FROM affiliate_free_render_attempts
+            WHERE started_at>?""", (now - FREE_COOLDOWN_SECONDS,)
+        ).fetchone()
+        daily_wait = (max(0, int(earliest_daily) + FREE_COOLDOWN_SECONDS - now)
+                      if daily_count >= MAX_GLOBAL_FREE_ATTEMPTS_PER_DAY else 0)
+        pool_wait = max(pool_wait, daily_wait)
         return FreeQuotaStatus(
             remaining_seconds=remaining, in_progress=pending,
             attempt_retry_seconds=retry, capacity_retry_seconds=pool_wait,
@@ -158,7 +166,7 @@ class VideoQuota:
                 if status.capacity_retry_seconds > 0:
                     raise PermissionError("Capacidade gratuita temporariamente esgotada. Tente novamente mais tarde.")
                 db.execute("DELETE FROM affiliate_free_render_attempts WHERE started_at<=?",
-                           (now - FREE_ATTEMPT_WINDOW_SECONDS,))
+                           (now - FREE_COOLDOWN_SECONDS,))
                 db.execute("INSERT INTO affiliate_free_render_attempts VALUES (?,?)", (owner_id, now))
             else:
                 used = db.execute("""SELECT COUNT(*) FROM affiliate_video_quota
