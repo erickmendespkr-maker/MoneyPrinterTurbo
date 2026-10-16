@@ -100,7 +100,7 @@ def test_upload_failure_marks_job_failed(tmp_path: Path):
 def test_ffprobe_duration_parsing(tmp_path: Path):
     output = tmp_path / "video.mp4"
     with patch.object(worker.subprocess, "run") as run:
-        run.return_value.stdout = "15.027\\n"
+        run.return_value.stdout = "15.027\n"
         assert worker._duration_seconds(output) == 15.027
     assert run.call_args.kwargs["timeout"] == 30
     assert run.call_args.kwargs["check"] is True
