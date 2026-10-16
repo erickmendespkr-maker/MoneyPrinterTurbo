@@ -170,6 +170,23 @@ if PUBLIC_AUTH_BETA:
             else:
                 st.success("Cota de vídeo gratuita disponível.")
             st.caption("Atualize a página para consultar novamente o tempo restante.")
+        st.markdown("#### Minhas gerações")
+        st.caption("Acompanhamento da fila de teste. Nenhum vídeo é iniciado nesta tela beta.")
+        if st.button("Atualizar andamento", key="ac_beta_refresh_jobs"):
+            st.rerun()
+        items = quota.list_jobs(beta_session["access_token"])
+        if items:
+            labels = {"queued": "Na fila", "running": "Processando",
+                      "completed": "Concluído", "failed": "Falhou"}
+            st.table([{
+                "Trabalho": job.id[:8] + "…",
+                "Tipo": "Campanha (3 vídeos)" if job.kind == "campaign" else "Vídeo",
+                "Situação": labels[job.status],
+                "Solicitado em": job.created_at[:19].replace("T", " ") if job.created_at else "—",
+            } for job in items])
+            st.caption("Para baixar arquivos concluídos, será necessário habilitar o backend de downloads seguros.")
+        else:
+            st.info("Você ainda não tem vídeos na fila.")
         st.info("A geração pública será ativada somente após a validação dos servidores e da fila de processamento.")
     except (AuthDenied, AuthServiceUnavailable, ValueError):
         st.error("Não foi possível consultar seu plano ou cota. Verifique a configuração do Supabase.")
