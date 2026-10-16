@@ -112,12 +112,30 @@ def test_refresh_token_rotated_and_verified():
     assert json.loads(auth._opener.requests[0].data)["refresh_token"].startswith("old_")
 
 
-def test_registration_rejects_provider_without_email_confirmation():
+def test_registration_rejects_provider_without_email_confirmation(monkeypatch):
+    from app.afiliados.turnstile import TurnstileConfig
+    monkeypatch.setattr("app.afiliados.turnstile.load_turnstile_config",
+                        lambda required: TurnstileConfig("public", "secret", "app.example.com"))
+    checked = []
+    monkeypatch.setattr("app.afiliados.turnstile.verify_registration_token",
+                        lambda token, config: checked.append(token))
     auth = make_auth({"id": USER_ID, "email": "new@example.com"})
-    auth.register("new@example.com", "a secure 12345 password")
+    auth.register("new@example.com", "a secure 12345 password", captcha_token="validated")
+    assert checked == ["validated"]
     auth2 = make_auth({"access_token": "a" * 80, "refresh_token": "b" * 80})
     with pytest.raises(AuthServiceUnavailable, match="Confirmação"):
-        auth2.register("new@example.com", "a secure 12345 password")
+        auth2.register("new@example.com", "a secure 12345 password", captcha_token="validated")
+
+
+def test_public_registration_fails_without_config_or_proof(monkeypatch):
+    auth = make_auth({"id": USER_ID})
+    monkeypatch.delenv("AFILIADOS_TURNSTILE_SITE_KEY", raising=False)
+    monkeypatch.delenv("AFILIADOS_TURNSTILE_SECRET_KEY", raising=False)
+    monkeypatch.delenv("AFILIADOS_TURNSTILE_HOSTNAME", raising=False)
+    with pytest.raises(RuntimeError):
+        auth.register("new@example.com", "a secure 12345 password", captcha_token="something")
+    assert not auth._opener.requests
+
 
 
 def test_auth_denied_and_network_error_are_fail_closed():
