@@ -6,7 +6,7 @@ import pytest
 from app.afiliados.private_object_storage import PrivateObjectStorage
 from app.afiliados.production_auth import SupabaseAuth
 from app.afiliados.production_jobs import ProductionJobService
-from app.afiliados.production_quota import RenderJobStatus, SupabaseVideoQuota
+from app.afiliados.production_quota import PublicFreeStatus, RenderJobStatus, SupabaseVideoQuota
 from app.afiliados.render_inputs import pack_inputs, unpack_inputs
 from app.afiliados.render_worker import RenderWorker
 from app.afiliados.worker_queue import SupabaseWorkerQueue, WorkerLease
@@ -56,6 +56,16 @@ class MemoryQuotas(SupabaseVideoQuota):
         self.auth = auth
         self.items = []
         self.state = "completed"
+        self.plan_name = "gratis"
+        self.free_available = True
+
+    def plan(self, bearer):
+        assert bearer == TOKEN
+        return self.plan_name
+
+    def free_status(self, bearer):
+        assert bearer == TOKEN
+        return PublicFreeStatus(0 if self.free_available else 3600, False, 0, 0)
 
     def enqueue_job(self, bearer, job_id, kind, variant):
         assert bearer == TOKEN
@@ -178,3 +188,23 @@ def test_input_package_never_carries_plan_or_owner():
     assert "owner_id" not in vars(parsed)
     assert "plan" not in vars(parsed)
     assert "watermark" not in vars(parsed)
+
+
+def test_free_cooldown_blocks_storage_before_upload():
+    store = MemoryStore()
+    quotas = MemoryQuotas(store.auth)
+    quotas.free_available = False
+    service = ProductionJobService(quotas, store)
+    with pytest.raises(PermissionError, match="Aguarde"):
+        service.submit(TOKEN, [b"photo"], "Produto", 15, "Roteiro")
+    assert store.contents == {} and quotas.items == []
+
+
+def test_campaign_invalid_plan_is_rejected_before_any_upload():
+    store = MemoryStore()
+    quotas = MemoryQuotas(store.auth)
+    service = ProductionJobService(quotas, store)
+    with pytest.raises(PermissionError):
+        service.submit(TOKEN, [b"photo"], "Produto", 15, "Roteiro",
+                       kind="campaign")
+    assert store.contents == {} and quotas.items == []
