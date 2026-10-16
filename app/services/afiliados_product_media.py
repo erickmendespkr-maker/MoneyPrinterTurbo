@@ -23,7 +23,7 @@ def validate_product_paths(payload: dict, user_id: str) -> list[str]:
         raise ValueError("Product photos are required for image-based rendering")
     for path in source.image_paths:
         filename = path.split("/", 1)[1]
-        if not filename or any(ch in filename for ch in ("?", "#", "%", "\\x00")):
+        if not filename or any(ch in filename for ch in ("?", "#", "%")):
             raise ValueError("Unsafe product image filename")
     return source.image_paths
 
