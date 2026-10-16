@@ -40,16 +40,6 @@ def _heartbeat_loop(backend, generation_id: str, stop: threading.Event) -> None:
             logger.exception("Heartbeat failed for {}", generation_id)
 
 
-def _require_product_media_integration() -> None:
-    """Fail closed until private product images can reach the actual renderer.
-
-    Keep this gate separate so orchestration tests can exercise the remaining
-    worker lifecycle without implying product footage is production-ready.
-    """
-    # The production path below must supply verified product files.
-    return None
-
-
 def process_one() -> bool:
     backend = AfiliadosBackend()
     job = backend.claim_next()
@@ -75,7 +65,6 @@ def process_one() -> bool:
             photos = download_product_photos(backend, source, user_id, Path(workdir))
             if not photos:
                 raise RuntimeError("product_images_required")
-            _require_product_media_integration()
             params = build_video_params(job["brief"], job["duration_seconds"], [str(p) for p in photos])
             if params.video_source != "local":
                 raise RuntimeError("stock_media_forbidden")
