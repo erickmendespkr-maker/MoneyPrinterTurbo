@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 from app.afiliados.core import AffiliateBrief, prepare_draft
