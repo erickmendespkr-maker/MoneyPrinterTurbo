@@ -6,9 +6,13 @@ def lookup_shopee_product(url: str, api) -> dict:
     ids = shopee_product_ids(url)
     resolved_url = url
     if ids is None:
-        preview = preview_product_link(url)
-        resolved_url = preview.resolved_url
-        ids = shopee_product_ids(resolved_url)
+        try:
+            preview = preview_product_link(url)
+        except (ValueError, OSError):
+            preview = None
+        if preview is not None:
+            resolved_url = preview.resolved_url
+            ids = shopee_product_ids(resolved_url)
     if ids is None:
         return {
             "status": "shortlink_unresolved",
