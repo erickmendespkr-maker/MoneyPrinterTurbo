@@ -32,7 +32,7 @@ class ProductLinkPreview(BaseModel):
 
 def _platform(url: str) -> str:
     parsed = urlsplit(url)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.port not in (None, 443):
         raise ValueError("HTTPS marketplace URL required")
     host = parsed.hostname.lower().rstrip(".")
     for platform, domains in HOSTS.items():
