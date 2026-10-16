@@ -51,3 +51,14 @@ def test_does_not_use_user_text_as_system_prompt():
     )
     assert params.custom_system_prompt == ""
     assert params.custom_audio_file is None
+
+
+def test_verified_product_photos_disable_stock_source():
+    params = build_video_params(
+        {"product_name": "Mini aspirador portátil"},
+        15,
+        ["/tmp/verified-product-photo.jpg"],
+    )
+    assert params.video_source == "local"
+    assert len(params.video_materials) == 1
+    assert params.video_materials[0].url == "/tmp/verified-product-photo.jpg"
