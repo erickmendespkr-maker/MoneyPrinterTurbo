@@ -156,7 +156,7 @@ BEGIN
            OR (j.status='running' AND j.lease_expires_at <= v_now))
       AND j.attempts < 3 AND j.created_at > v_now - INTERVAL '6 hours'
     ORDER BY j.created_at ASC
-    FOR UPDATE SKIP LOCKED LIMIT 1;
+    LIMIT 1 FOR UPDATE SKIP LOCKED;
   IF NOT FOUND THEN RETURN NULL; END IF;
   UPDATE affiliate_private.render_jobs j SET
     status='running',attempts=j.attempts+1,
