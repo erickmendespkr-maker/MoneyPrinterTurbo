@@ -20,6 +20,14 @@ MAX_RPC_RESPONSE = 8192
 
 
 @dataclass(frozen=True)
+class RenderJobStatus:
+    id: str
+    status: str
+    kind: str
+    error_code: str | None
+
+
+@dataclass(frozen=True)
 class PublicFreeStatus:
     remaining_seconds: int
     in_progress: bool
@@ -44,6 +52,7 @@ class SupabaseVideoQuota:
         if name not in (
             "affiliate_reserve_videos", "affiliate_complete_videos",
             "affiliate_release_videos", "affiliate_free_status", "affiliate_my_plan",
+            "affiliate_enqueue_job", "affiliate_job_status",
         ):
             raise ValueError("Operação de cota inválida")
         # This performs a live Auth /user check; no session token is trusted
@@ -87,6 +96,44 @@ class SupabaseVideoQuota:
         if not isinstance(plan, str) or plan not in PLANS:
             raise AuthServiceUnavailable("Plano inválido no servidor")
         return plan
+
+    def enqueue_job(self, access_token: str, job_id: str,
+                    kind: str, variant: str = "impacto") -> str:
+        if kind not in ("video", "campaign") or variant not in (
+                "impacto", "beneficio", "curiosidade"):
+            raise ValueError("Tipo de trabalho inválido")
+        if not isinstance(job_id, str):
+            raise ValueError("ID do trabalho inválido")
+        try:
+            valid_id = str(UUID(job_id))
+        except (ValueError, AttributeError) as exc:
+            raise ValueError("ID do trabalho inválido") from exc
+        result = self._rpc("affiliate_enqueue_job", access_token, {
+            "p_job_id": valid_id, "p_kind": kind, "p_variant": variant,
+        })
+        if result != valid_id:
+            raise AuthServiceUnavailable("Resposta da fila inválida")
+        return valid_id
+
+    def job_status(self, access_token: str, job_id: str) -> RenderJobStatus:
+        if not isinstance(job_id, str):
+            raise ValueError("ID do trabalho inválido")
+        try:
+            valid_id = str(UUID(job_id))
+        except (ValueError, AttributeError) as exc:
+            raise ValueError("ID do trabalho inválido") from exc
+        result = self._rpc("affiliate_job_status", access_token, {
+            "p_job_id": valid_id,
+        })
+        if (not isinstance(result, dict) or result.get("id") != valid_id
+                or result.get("kind") not in ("video", "campaign")
+                or result.get("status") not in ("queued", "running", "completed", "failed")
+                or result.get("error_code") is not None
+                and (not isinstance(result.get("error_code"), str)
+                     or len(result["error_code"]) > 40)):
+            raise AuthServiceUnavailable("Resposta de trabalho inválida")
+        return RenderJobStatus(valid_id, result["status"], result["kind"],
+                               result.get("error_code"))
 
     def reserve(self, access_token: str, count: int = 1) -> list[str]:
         if type(count) is not int or not 1 <= count <= 3:
