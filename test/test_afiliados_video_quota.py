@@ -173,3 +173,19 @@ def test_free_failed_render_storm_limited_without_consuming_success_quota(tmp_pa
         quota.reserve(OWNER, "gratis")
     clock[0] += module.FREE_ATTEMPT_WINDOW_SECONDS + 1
     assert quota.reserve(OWNER, "gratis")
+
+
+def test_global_free_render_pool_limits_multiple_accounts(tmp_path, monkeypatch):
+    clock = [1800000000]
+    monkeypatch.setattr(module, "_now", lambda: clock[0])
+    monkeypatch.setattr(module, "MAX_GLOBAL_FREE_ATTEMPTS_PER_HOUR", 2)
+    quota = VideoQuota(tmp_path / "quota.sqlite")
+    for owner in ("account_1", "account_2"):
+        quota.release(owner, quota.reserve(owner, "gratis"))
+    assert quota.free_status("account_3").capacity_retry_seconds == 3600
+    with pytest.raises(PermissionError, match="Capacidade gratuita"):
+        quota.reserve("account_3", "gratis")
+    # The global limit rolls forward; it is not reset by a new email account.
+    clock[0] += 3601
+    assert quota.free_status("account_3").can_generate
+    assert quota.reserve("account_3", "gratis")
