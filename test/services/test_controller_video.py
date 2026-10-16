@@ -93,8 +93,9 @@ class TestVideoControllerHelpers(unittest.TestCase):
         with patch.object(task_service, "recover_interrupted_cross_posts") as recover:
 
             async def run_lifespan():
-                async with asgi.application_lifespan(asgi.app):
-                    pass
+                with patch.dict(asgi.config.app, {"api_key": "test-secret"}):
+                    async with asgi.application_lifespan(asgi.app):
+                        pass
 
             asyncio.run(run_lifespan())
 
@@ -113,8 +114,9 @@ class TestVideoControllerHelpers(unittest.TestCase):
             patch.object(task_service, "recover_interrupted_cross_posts"),
         ):
             async def run_lifespan():
-                async with asgi.application_lifespan(asgi.app):
-                    pass
+                with patch.dict(asgi.config.app, {"api_key": "test-secret"}):
+                    async with asgi.application_lifespan(asgi.app):
+                        pass
 
             asyncio.run(run_lifespan())
 
@@ -566,8 +568,9 @@ class TestVideoControllerCreateHTTP(unittest.TestCase):
 
     def setUp(self):
         self.original_app_config = dict(config.app)
-        config.app["api_key"] = ""
+        config.app["api_key"] = "test-secret"
         self.client = TestClient(asgi.app)
+        self.client.headers.update({"x-api-key": "test-secret"})
 
     def tearDown(self):
         config.app.clear()
@@ -588,7 +591,7 @@ class TestVideoControllerListHTTP(unittest.TestCase):
     def test_task_page_size_is_bounded_before_state_scan(self):
         """A client cannot request an unbounded Redis scan and response body."""
         with (
-            patch.dict(config.app, {"api_key": ""}),
+            patch.dict(config.app, {"api_key": "test-secret"}),
             patch.object(
                 video_controller.sm.state,
                 "get_all_tasks",
@@ -596,6 +599,7 @@ class TestVideoControllerListHTTP(unittest.TestCase):
             ) as get_all,
         ):
             client = TestClient(asgi.app)
+            client.headers.update({"x-api-key": "test-secret"})
             allowed = client.get("/api/v1/tasks?page_size=1000")
             rejected = client.get("/api/v1/tasks?page_size=1001")
 
@@ -610,8 +614,9 @@ class TestVideoControllerDeleteHTTP(unittest.TestCase):
     def setUp(self):
         self.original_app_config = dict(config.app)
         # 这些用例只验证任务删除协议；鉴权行为由独立测试覆盖。
-        config.app["api_key"] = ""
+        config.app["api_key"] = "test-secret"
         self.client = TestClient(asgi.app)
+        self.client.headers.update({"x-api-key": "test-secret"})
 
     def tearDown(self):
         config.app.clear()

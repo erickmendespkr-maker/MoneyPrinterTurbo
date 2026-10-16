@@ -1,0 +1,72 @@
+name: Afiliados Creator checks
+
+on:
+  push:
+    branches: [feature/afiliados]
+    paths:
+      - "app/models/afiliados_*.py"
+      - "app/afiliados/plans.py"
+      - "app/afiliados/pricing.py"
+      - "app/services/afiliados_*.py"
+      - "tests/test_afiliados_*.py"
+      - ".github/workflows/afiliados-checks.yml"
+  pull_request:
+    paths:
+      - "app/models/afiliados_*.py"
+      - "app/afiliados/plans.py"
+      - "app/afiliados/pricing.py"
+      - "app/services/afiliados_*.py"
+      - "tests/test_afiliados_*.py"
+      - ".github/workflows/afiliados-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile Afiliados modules and tests
+        run: |
+          python -m py_compile app/afiliados/plans.py app/afiliados/pricing.py
+          python -m py_compile app/models/afiliados_brief.py
+          python -m py_compile app/models/afiliados_product_source.py
+          python -m py_compile app/services/afiliados_backend.py
+          python -m py_compile app/services/afiliados_product_media.py
+          python -m py_compile app/services/afiliados_product_importer.py
+          python -m py_compile app/services/afiliados_marketplace_images.py tests/test_afiliados_marketplace_images.py
+          python -m py_compile app/services/afiliados_link_prepare.py tests/test_afiliados_link_prepare.py
+          python -m py_compile app/services/afiliados_shopee_api.py tests/test_afiliados_shopee_api.py
+          python -m py_compile app/services/afiliados_shopee_ids.py app/services/afiliados_shopee_lookup.py app/services/afiliados_shopee_diagnostic.py tests/test_afiliados_shopee_lookup.py tests/test_afiliados_shopee_diagnostic.py
+          python -m py_compile tests/test_afiliados_product_importer.py
+          python -m py_compile app/services/afiliados_link_smoke.py tests/test_afiliados_link_smoke.py
+          python -m py_compile app/services/afiliados_render_params.py
+          python -m py_compile app/services/afiliados_worker.py
+          python -m py_compile app/services/afiliados_video_watermark.py
+          python -m py_compile tests/test_afiliados_video_watermark.py
+          python -m py_compile tests/test_afiliados_render_params.py
+          python -m py_compile tests/test_afiliados_worker.py
+          python -m py_compile tests/test_afiliados_product_media.py
+          python -m py_compile tests/test_afiliados_product_source.py tests/test_afiliados_plan_reconciliation.py tests/test_afiliados_product_media.py tests/test_afiliados_video_watermark.py
+
+  contract-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test and application dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+      - name: Run Afiliados unit tests without production credentials
+        env:
+          SUPABASE_URL: ""
+          SUPABASE_SERVICE_ROLE_KEY: ""
+        run: python -m pytest -q tests/test_afiliados_render_params.py tests/test_afiliados_worker.py tests/test_afiliados_product_source.py tests/test_afiliados_plan_reconciliation.py tests/test_afiliados_product_importer.py tests/test_afiliados_link_smoke.py tests/test_afiliados_marketplace_images.py tests/test_afiliados_link_prepare.py tests/test_afiliados_shopee_api.py tests/test_afiliados_shopee_lookup.py tests/test_afiliados_shopee_diagnostic.py tests/test_afiliados_video_watermark.py

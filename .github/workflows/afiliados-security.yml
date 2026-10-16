@@ -1,0 +1,37 @@
+name: Afiliados security checks
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/afiliados]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: afiliados-security-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  static-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check Python syntax
+        run: python -m compileall -q app webui main.py
+      - name: Check for committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LOG_OPTS: "--all"
+      - uses: astral-sh/setup-uv@v6
+      - name: Audit resolved project dependencies with patched Pillow
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          uv lock --check
+          uv export --locked --no-dev --no-emit-project --no-hashes --output-file /tmp/afiliados-audit-requirements.txt
+          grep -E "^pillow==12\\.3\\.0$" /tmp/afiliados-audit-requirements.txt
+          pip-audit -r /tmp/afiliados-audit-requirements.txt --no-deps --disable-pip --progress-spinner off
