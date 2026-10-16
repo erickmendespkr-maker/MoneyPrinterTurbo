@@ -132,3 +132,54 @@ def test_provider_denied_fails_closed():
 def test_malformed_status_fails_closed(malformed):
     with pytest.raises(AuthServiceUnavailable):
         client(malformed).free_status(BEARER)
+
+
+def test_only_authenticated_owner_can_list_jobs():
+    task_id = str(uuid4())
+    quota = client([{
+        "id": task_id, "status": "running", "kind": "video",
+        "created_at": "2026-10-15T15:30:00Z", "finished_at": None,
+        "error_code": None,
+    }])
+    jobs = quota.list_jobs(BEARER, limit=5)
+    assert len(jobs) == 1
+    assert jobs[0].id == task_id
+    assert jobs[0].status == "running"
+    req = quota._opener.requests[0]
+    assert req.full_url.endswith("/affiliate_my_jobs")
+    assert json.loads(req.data) == {"p_limit": 5}
+
+
+@pytest.mark.parametrize("bad", [
+    [{"id": str(uuid4()), "status": "unknown", "kind": "video"}],
+    [{"id": str(uuid4()), "status": "completed", "kind": "invalid"}],
+    [{"id": "../invalid", "status": "completed", "kind": "video"}],
+    [{"id": str(uuid4()), "status": "running", "kind": "video",
+      "error_code": "z" * 60}],
+    {"error": "unexpected"},
+])
+def test_malformed_job_list_fails_closed(bad):
+    with pytest.raises(AuthServiceUnavailable):
+        client(bad).list_jobs(BEARER)
+
+
+def test_duplicate_job_list_rejected():
+    task_id = str(uuid4())
+    item = {"id": task_id, "status": "queued", "kind": "video"}
+    with pytest.raises(AuthServiceUnavailable, match="duplicados"):
+        client([item, item]).list_jobs(BEARER)
+
+
+@pytest.mark.parametrize("limit", [0, 21, -1, 1.5, True])
+def test_rejects_unbounded_history_list(limit):
+    quota = client([])
+    with pytest.raises(ValueError):
+        quota.list_jobs(BEARER, limit)
+    assert not quota._opener.requests
+
+
+def test_invalid_session_cannot_list_queue():
+    quota = client([])
+    with pytest.raises(AuthDenied):
+        quota.list_jobs("invalid-user-token_" + "x" * 40)
+    assert not quota._opener.requests
