@@ -80,3 +80,11 @@ class AfiliadosBackend:
         return bool(self._rpc("worker_heartbeat_generation", {
             "p_generation_id": generation_id,
         }))
+
+    def get_generation_plan(self, generation_id, user_id):
+        response = self.session.get(self.url + '/rest/v1/video_generations', params={'select':'effective_plan_code', 'id':'eq.' + generation_id, 'user_id':'eq.' + user_id, 'status':'eq.processing'}, timeout=30)
+        response.raise_for_status()
+        rows = response.json()
+        if len(rows) != 1 or rows[0].get('effective_plan_code') not in ('free', 'pro', 'premium', 'creator'):
+            raise ValueError('Invalid generation plan snapshot')
+        return rows[0]['effective_plan_code']
