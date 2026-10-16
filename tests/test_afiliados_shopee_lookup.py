@@ -34,3 +34,11 @@ def test_unresolved_shortlink_does_not_guess_ids():
         result = lookup_shopee_product(url, api)
     assert result["status"] == "shortlink_unresolved"
     api.product_offer.assert_not_called()
+
+def test_blocked_shortlink_returns_actionable_status():
+    url = "https://s.shopee.com.br/60SPo2qmRw"
+    api = MagicMock()
+    with patch("app.services.afiliados_shopee_lookup.preview_product_link", side_effect=ValueError("blocked")):
+        result = lookup_shopee_product(url, api)
+    assert result["status"] == "shortlink_unresolved"
+    api.product_offer.assert_not_called()
