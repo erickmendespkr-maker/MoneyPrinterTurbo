@@ -18,6 +18,7 @@ def test_prepares_reviewable_draft_with_private_image():
     assert result["status"] == "ready_for_review"
     assert result["source"]["mode"] == "both"
     assert result["source"]["image_paths"] == [uid + "/photo.jpg"]
+    assert result["source"]["product_url"] == preview.resolved_url
 
 def test_missing_image_requires_manual_upload():
     uid = str(uuid4())
